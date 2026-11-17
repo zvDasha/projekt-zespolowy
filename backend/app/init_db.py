@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
 from app.database import engine, SessionLocal, Base
 from app.models import User, Book, BookCopy, Reservation, Review, Favorite, ChatMessage
@@ -111,7 +111,7 @@ def init_database():
         db.flush()
 
         # Reservations
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         res1 = Reservation(
             user_id=reader1.id,
             book_copy_id=copy1.id,
