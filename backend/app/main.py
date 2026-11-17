@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.init_db import init_database
@@ -12,7 +13,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="API", lifespan=lifespan)
+app = FastAPI(title="Library AI API", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
@@ -31,7 +40,9 @@ def get_books(db: Session = Depends(get_db)):
             "isbn": book.isbn,
             "genre": book.genre,
             "publication_year": book.publication_year,
-            "available_copies": sum(1 for c in book.copies if c.status == "available")
+            "total_copies": len(book.copies),
+            "available_copies": sum(1 for c in book.copies if c.status == "available"),
+            "average_rating": round(sum(r.rating for r in book.reviews) / len(book.reviews), 2) if book.reviews else None
         }
         for book in books
     ]
@@ -50,5 +61,8 @@ def get_book(book_id: int, db: Session = Depends(get_db)):
         "genre": book.genre,
         "publication_year": book.publication_year,
         "description": book.description,
-        "available_copies": sum(1 for c in book.copies if c.status == "available")
+        "cover_url": book.cover_url,
+        "total_copies": len(book.copies),
+        "available_copies": sum(1 for c in book.copies if c.status == "available"),
+        "average_rating": round(sum(r.rating for r in book.reviews) / len(book.reviews), 2) if book.reviews else None
     }

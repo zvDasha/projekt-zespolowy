@@ -1,2 +1,19 @@
-.venv
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Environment variables
 .env
+
+# IDE
+.vscode/
+.idea/
+
+# Frontend (future)
+node_modules/
+dist/
+build/

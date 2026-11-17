@@ -18,9 +18,14 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    reservations = relationship("Reservation", back_populates="user")
-    reviews = relationship("Review", back_populates="user")
+    __table_args__ = (
+        CheckConstraint("role IN ('reader', 'librarian', 'admin')", name="check_user_role"),
+    )
+
+    reservations = relationship("Reservation", back_populates="user", cascade="all, delete-orphan")
+    reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
     favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
+    chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
 
 
 class Book(Base):
@@ -46,9 +51,14 @@ class BookCopy(Base):
     id = Column(Integer, primary_key=True, index=True)
     book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
     inventory_number = Column(String(50), unique=True, nullable=False)
-    status = Column(String(20), default="available", index=True)  # available | reserved | borrowed
+    status = Column(String(20), default="available", nullable=False, index=True)  # available | reserved | borrowed
+
+    __table_args__ = (
+        CheckConstraint("status IN ('available', 'reserved', 'borrowed')", name="check_copy_status"),
+    )
 
     book = relationship("Book", back_populates="copies")
+    reservations = relationship("Reservation", back_populates="book_copy")
 
 
 class Reservation(Base):
@@ -57,12 +67,18 @@ class Reservation(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     book_copy_id = Column(Integer, ForeignKey("book_copies.id", ondelete="CASCADE"), nullable=False, index=True)
-    status = Column(String(20), default="pending", index=True)  # pending | confirmed | returned | cancelled
+    status = Column(String(20), default="pending", nullable=False, index=True)  # pending | confirmed | returned | cancelled
     reserved_at = Column(DateTime, default=datetime.utcnow)
     due_date = Column(DateTime, nullable=True)
+    returned_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("status IN ('pending', 'confirmed', 'returned', 'cancelled')", name="check_reservation_status"),
+    )
 
     user = relationship("User", back_populates="reservations")
-    book_copy = relationship("BookCopy")
+    book_copy = relationship("BookCopy", back_populates="reservations")
+    review = relationship("Review", back_populates="reservation", uselist=False)
 
 
 class Review(Base):
@@ -71,7 +87,7 @@ class Review(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
-    reservation_id = Column(Integer, ForeignKey("reservations.id"), unique=True, nullable=False)
+    reservation_id = Column(Integer, ForeignKey("reservations.id", ondelete="CASCADE"), unique=True, nullable=False)
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -83,6 +99,7 @@ class Review(Base):
 
     user = relationship("User", back_populates="reviews")
     book = relationship("Book", back_populates="reviews")
+    reservation = relationship("Reservation", back_populates="review")
 
 
 class Favorite(Base):
@@ -103,3 +120,5 @@ class ChatMessage(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="chat_messages")
