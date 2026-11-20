@@ -1,18 +1,23 @@
-import uuid 
+import math
+import uuid
+from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Book, BookCopy, Reservation, User
+from app.models import Book, BookCopy, Reservation, Review, User
 from app.schemas import (
     BookCreate,
     BookDetailResponse,
+    BookListResponse,
     BookResponse,
     BookUpdate,
     CopyCreate,
     CopyResponse,
+    normalize_isbn,
 )
 from app.security import require_roles
 
@@ -65,16 +70,98 @@ def _commit_or_409(db: Session) -> None:
         raise HTTPException(status_code=409, detail="Conflict with existing data (duplicate ISBN?)")
 
 # public access
-@router.get("", response_model=list[BookResponse])
-def list_books(db: Session = Depends(get_db)):
-    books = db.query(Book).all()
-    return [
-        BookResponse(
-            id=b.id, title=b.title, author=b.author, isbn=b.isbn,
-            genre=b.genre, publication_year=b.publication_year, **_book_stats(b),
+SortOption = Literal["title", "-title", "year", "-year", "rating", "-rating", "added", "-added"]
+
+
+@router.get("", response_model=BookListResponse)
+def list_books(
+    q: Optional[str] = Query(None, max_length=100, description="Fragment of title or author"),
+    genre: Optional[str] = Query(None, max_length=100),
+    isbn: Optional[str] = Query(None, max_length=20),
+    year_from: Optional[int] = Query(None, ge=0),
+    year_to: Optional[int] = Query(None, ge=0),
+    available_only: bool = False,
+    sort: SortOption = "title",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    ):
+    copies_sq = (
+        select(
+            BookCopy.book_id,
+            func.count().label("total_copies"),
+            func.count().filter(BookCopy.status == "available").label("available_copies"),
         )
-        for b in books
+        .group_by(BookCopy.book_id)
+        .subquery()
+    )
+    ratings_sq = (
+        select(Review.book_id, func.avg(Review.rating).label("average_rating"))
+        .group_by(Review.book_id)
+        .subquery()
+    )
+    total_copies = func.coalesce(copies_sq.c.total_copies, 0)
+    available_copies = func.coalesce(copies_sq.c.available_copies, 0)
+    average_rating = ratings_sq.c.average_rating
+
+    stmt = (
+        select(Book, total_copies, available_copies, average_rating)
+        .outerjoin(copies_sq, copies_sq.c.book_id == Book.id)
+        .outerjoin(ratings_sq, ratings_sq.c.book_id == Book.id)
+    )
+
+    # filtry
+    if q:
+        stmt = stmt.where(
+            or_(Book.title.icontains(q, autoescape=True), Book.author.icontains(q, autoescape=True))
+        )
+    if genre:
+        stmt = stmt.where(func.lower(Book.genre) == genre.lower())
+    if isbn:
+        try:
+            stmt = stmt.where(Book.isbn == normalize_isbn(isbn))
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+    if year_from is not None:
+        stmt = stmt.where(Book.publication_year >= year_from)
+    if year_to is not None:
+        stmt = stmt.where(Book.publication_year <= year_to)
+    if available_only:
+        stmt = stmt.where(available_copies > 0)
+
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+
+    sort_columns = {
+        "title": Book.title,
+        "year": Book.publication_year,
+        "rating": average_rating,
+        "added": Book.created_at,
+    }
+    column = sort_columns[sort.lstrip("-")]
+    order = column.desc() if sort.startswith("-") else column.asc()
+    stmt = stmt.order_by(order.nulls_last(), Book.id)  # Book.id = stabilna kolejność stron
+
+    rows = db.execute(stmt.offset((page - 1) * page_size).limit(page_size)).all()
+
+    items = [
+        BookResponse(
+            id=book.id, title=book.title, author=book.author, isbn=book.isbn,
+            genre=book.genre, publication_year=book.publication_year,
+            total_copies=total_c, available_copies=avail_c,
+            average_rating=round(float(avg), 2) if avg is not None else None,
+        )
+        for book, total_c, avail_c, avg in rows
     ]
+    return BookListResponse(
+        items=items, total=total, page=page, page_size=page_size,
+        pages=math.ceil(total / page_size) if total else 0,
+    )
+
+
+@router.get("/genres", response_model=list[str])
+def list_genres(db: Session = Depends(get_db)):
+    """Lista gatunków do filtra na froncie. Musi być PRZED /{book_id}."""
+    return db.scalars(select(Book.genre).distinct().order_by(Book.genre)).all()
 
 
 @router.get("/{book_id}", response_model=BookDetailResponse)
