@@ -129,7 +129,7 @@ def cancel_reservation(
     reservation = _get_locked_reservation(db, reservation_id)
     is_staff = current_user.role in ("librarian", "admin")
     if reservation.user_id != current_user.id and not is_staff:
-        # 404 instead of 403: don't reveal that someone else's reservation exists        raise HTTPException(status_code=404, detail="Reservation not found")
+        # 404 instead of 403: don't reveal that someone else's reservation exists
         raise HTTPException(status_code=404, detail="Reservation not found")
     _require_status(reservation, "pending")
 
