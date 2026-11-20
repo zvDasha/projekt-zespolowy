@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Literal
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 
 
 class UserRegister(BaseModel):
@@ -73,3 +73,68 @@ class BookDetailResponse(BookResponse):
     description: Optional[str] = None
     cover_url: Optional[str] = None
 
+
+def normalize_isbn(value: str) -> str:
+    isbn = value.replace("-", "").replace(" ", "").upper()
+    is_isbn13 = len(isbn) == 13 and isbn.isdigit()
+    is_isbn10 = len(isbn) == 10 and isbn[:9].isdigit() and (isbn[9].isdigit() or isbn[9] == "X")
+    if not (is_isbn13 or is_isbn10):
+        raise ValueError("ISBN must have 10 or 13 digits")
+    return isbn
+
+def check_publication_year(value: Optional[int]) -> Optional[int]:
+    max_year = datetime.now().year + 1
+    if value is not None and not (1450 <= value <= max_year):
+        raise ValueError(f"publication_year must be between 1450 and {max_year}")
+    return value
+
+class BookCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    author: str = Field(..., min_length=1, max_length=255)
+    isbn: str
+    genre: str = Field(..., min_length=1, max_length=100)
+    publication_year: Optional[int] = None
+    description: Optional[str] = None
+    cover_url: Optional[str] = Field(None, max_length=500)
+    copies: int = Field(0, ge=0, le=50, description="Number of copies to create right away")
+
+    @field_validator("isbn")
+    @classmethod
+    def validate_isbn(cls, v: str) -> str:
+        return normalize_isbn(v)
+
+    @field_validator("publication_year")
+    @classmethod
+    def validate_year(cls, v: Optional[int]) -> Optional[int]:
+        return check_publication_year
+
+class BookUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    author: Optional[str] = Field(None, min_length=1, max_length=255)
+    isbn: Optional[str] = None
+    genre: Optional[str] = Field(None, min_length=1, max_length=100)
+    publication_year: Optional[int] = None
+    description: Optional[str] = None
+    cover_url: Optional[str] = Field(None, max_length=500)
+
+    @field_validator("isbn")
+    @classmethod
+    def validate_isbn(cls, v: Optional[str]) -> Optional[str]:
+        return normalize_isbn(v) if v is not None else None
+
+    @field_validator("publication_year")
+    @classmethod
+    def validate_year(cls, v: Optional[int]) -> Optional[int]:
+        return check_publication_year(v)
+
+
+class CopyCreate(BaseModel):
+    count: int = Field(1, ge=1, le=50)
+
+
+class CopyResponse(BaseModel):
+    id: int
+    inventory_number: str
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
