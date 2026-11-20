@@ -106,7 +106,7 @@ class BookCreate(BaseModel):
     @field_validator("publication_year")
     @classmethod
     def validate_year(cls, v: Optional[int]) -> Optional[int]:
-        return check_publication_year
+        return check_publication_year(v)
 
 class BookUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
