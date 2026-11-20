@@ -175,3 +175,15 @@ class ReviewResponse(BaseModel):
     rating: int
     comment: Optional[str] = None
     created_at: datetime
+
+class ImportRowError(BaseModel):
+    row: int
+    isbn: Optional[str] = None
+    message: str
+
+
+class ImportResult(BaseModel):
+    dry_run: bool
+    created: int
+    skipped: int
+    errors: list[ImportRowError]
