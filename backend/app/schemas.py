@@ -161,3 +161,17 @@ class ReservationResponse(BaseModel):
     reserved_at: datetime
     due_date: Optional[datetime] = None
     returned_at: Optional[datetime] = None
+
+class ReviewCreate(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    comment: Optional[str] = Field(None, max_length=2000)
+
+
+class ReviewResponse(BaseModel):
+    id: int
+    book_id: int
+    user_id: int
+    user_name: str
+    rating: int
+    comment: Optional[str] = None
+    created_at: datetime
