@@ -69,6 +69,13 @@ class BookResponse(BaseModel):
     available_copies: int
     average_rating: Optional[float] = None
 
+class BookListResponse(BaseModel):
+    items: list[BookResponse]
+    total: int
+    page: int
+    page_size: int
+    pages: int
+    
 class BookDetailResponse(BookResponse):
     description: Optional[str] = None
     cover_url: Optional[str] = None
