@@ -56,3 +56,20 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class BookResponse(BaseModel):
+    id: int
+    title: str
+    author: str
+    isbn: str
+    genre: str
+    publication_year: Optional[int] = None
+    total_copies: int
+    available_copies: int
+    average_rating: Optional[float] = None
+
+class BookDetailResponse(BookResponse):
+    description: Optional[str] = None
+    cover_url: Optional[str] = None
+
