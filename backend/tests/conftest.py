@@ -7,6 +7,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.database import Base, get_db
+from app.db_rules import install_db_rules
 from app.main import app
 from app.models import Book, BookCopy, Reservation, Review, User
 from app.security import create_access_token
@@ -14,7 +15,6 @@ from app.security import create_access_token
 TEST_URL = make_url(os.getenv("DATABASE_URL", "postgresql+psycopg://library_admin:secret123@localhost:5432/library_db"))
 TEST_URL = TEST_URL.set(database=f"{TEST_URL.database}_test")
 
-#Testy działają na osobnej bazie <nazwa>_test
 
 @pytest.fixture(scope="session")
 def engine():
@@ -25,6 +25,7 @@ def engine():
     engine = create_engine(TEST_URL)
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+    install_db_rules(engine)
     yield engine
 
 
@@ -47,7 +48,6 @@ def client(db):
 
 @pytest.fixture
 def headers_for(db):
-    """headers_for("librarian") -> nagłówek Authorization dla nowego użytkownika z tą rolą."""
     def _make(role: str) -> dict:
         user = User(email=f"{role}{id(object())}@test.pl", full_name="Test", role=role)
         db.add(user)
@@ -65,7 +65,7 @@ def make_book(db):
         db.add(book)
         db.flush()
         db.add_all(BookCopy(book_id=book.id, inventory_number=f"T-{book.id}-{i}") for i in range(copies))
-        for i, rating in enumerate(ratings):  # każda ocena z własną potwierdzoną rezerwacją
+        for i, rating in enumerate(ratings): 
             user = User(email=f"r{book.id}-{i}@test.pl", full_name="R", role="reader")
             copy = BookCopy(book_id=book.id, inventory_number=f"R-{book.id}-{i}", status="borrowed")
             db.add_all([user, copy])

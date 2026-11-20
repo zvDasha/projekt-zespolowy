@@ -2,11 +2,11 @@ from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
 from app.database import engine, SessionLocal, Base
 from app.models import User, Book, BookCopy, Reservation, Review, Favorite, ChatMessage
-
+from app.db_rules import install_db_rules
 
 def init_database():
     Base.metadata.create_all(bind=engine)
-
+    install_db_rules(engine)
     db = SessionLocal()
     try:
         if db.query(User).first():
