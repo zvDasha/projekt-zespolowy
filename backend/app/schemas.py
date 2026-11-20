@@ -145,3 +145,19 @@ class CopyResponse(BaseModel):
     status: str
 
     model_config = ConfigDict(from_attributes=True)
+
+class ReservationCreate(BaseModel):
+    book_id: int
+
+
+class ReservationResponse(BaseModel):
+    id: int
+    status: str
+    book_id: int
+    book_title: str
+    inventory_number: str
+    user_id: int
+    user_email: str
+    reserved_at: datetime
+    due_date: Optional[datetime] = None
+    returned_at: Optional[datetime] = None
