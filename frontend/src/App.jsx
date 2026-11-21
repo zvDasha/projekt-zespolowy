@@ -4,6 +4,11 @@ import Catalog from './pages/Catalog';
 import BookDetails from './pages/BookDetails';
 import Scanner from './pages/Scanner';
 import Upcoming from './pages/Upcoming';
+import Auth from './pages/Auth';
+import Profile from './pages/Profile';
+import Reservations from './pages/Reservations';
+import Favorites from './pages/Favorites';
+import { Protected } from './auth';
 
 export default function App() {
   return <Routes><Route element={<Layout />}>
@@ -13,6 +18,15 @@ export default function App() {
     <Route path="skaner" element={<Scanner />} />
     <Route path="rekomendacje" element={<Upcoming />} />
     <Route path="kluby" element={<Upcoming chat />} />
-    <Route path="*" element={<div className="empty-state"><h1>Ta strona jest jeszcze pusta</h1><p>Wróć do naszej biblioteki.</p><Link className="button" to="/">Strona główna</Link></div>} />
+    <Route path="logowanie" element={<Auth key="login" />} />
+    <Route path="rejestracja" element={<Auth key="register" mode="register" />} />
+    <Route path="zapomniane-haslo" element={<Auth key="forgot" mode="forgot" />} />
+    <Route path="reset-hasla" element={<Auth key="reset" mode="reset" />} />
+    <Route element={<Protected />}>
+      <Route path="profil" element={<Profile />} />
+      <Route path="rezerwacje" element={<Reservations />} />
+      <Route path="ulubione" element={<Favorites />} />
+    </Route>
+    <Route path="*" element={<div className="empty-state"><span className="eyebrow">404 · ZAGUBIONA STRONA</span><h1>Ta historia jeszcze nie istnieje</h1><p>Sprawdź adres albo wróć do naszej biblioteki.</p><Link className="button" to="/">Strona główna</Link></div>} />
   </Route></Routes>;
 }
