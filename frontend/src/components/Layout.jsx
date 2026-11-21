@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Search, Moon, Sun, UserRound, Bookmark, ScanLine, Sparkles } from 'lucide-react';
+import { useApi } from '../hooks';
+import { BookCover } from './BookCard';
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const home = location.pathname === '/';
   const [query, setQuery] = useState('');
+  const [genre, setGenre] = useState('');
+  const { data: genres } = useApi('/books/genres');
+  const { data: featured } = useApi(home ? '/books?sort=-rating&page_size=3' : null);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('theme') || 'light'; } catch { return 'light'; }
   });
@@ -16,11 +21,15 @@ export default function Layout() {
   }, [theme]);
   useEffect(() => {
     setQuery(new URLSearchParams(location.search).get('q') || '');
+    setGenre(new URLSearchParams(location.search).get('genre') || '');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [location.pathname, location.search]);
   function search(event) {
     event.preventDefault();
-    navigate('/katalog?' + new URLSearchParams({ q: query.trim() }));
+    const params = new URLSearchParams();
+    if (query.trim()) params.set('q', query.trim());
+    if (genre) params.set('genre', genre);
+    navigate('/katalog?' + params);
   }
   return <>
     <a className="skip-link" href="#main">Przejdź do treści</a>
@@ -34,6 +43,7 @@ export default function Layout() {
           <Link to="/" className="brand" aria-label="Biblioteka — strona główna"><BookOpen size={33} strokeWidth={1.5} /><span>Biblioteka<span className="brand-caption">MIĘDZY WIERSZAMI</span></span></Link>
           <form className="search-bar" onSubmit={search} role="search">
             <Search size={20} /><input aria-label="Tytuł lub autor" placeholder="Jaka historia Cię dziś ciekawi?" value={query} onChange={e => setQuery(e.target.value)} maxLength={100} />
+            <select aria-label="Gatunek w wyszukiwarce" value={genre} onChange={e => setGenre(e.target.value)}><option value="">Każdy gatunek</option>{genres?.map(g => <option key={g}>{g}</option>)}</select>
             <button type="submit">Szukaj</button>
           </form>
           <Link className="reservation-link inline" to="/rezerwacje"><Bookmark size={18} /> Moje rezerwacje</Link>
@@ -43,7 +53,7 @@ export default function Layout() {
           <h1>Twoja kolejna<br /><em>wielka historia.</em></h1>
           <p>Od pierwszej strony po nowe horyzonty.<br />Znajdź książkę dla siebie i zarezerwuj ją online.</p>
           <Link to="/katalog" className="button button-light">Odkryj katalog <BookOpen size={17} /></Link>
-        </div><div className="hero-note"><span className="eyebrow">CZYTAJ PO SWOJEMU</span><p>Wiedza, wyobraźnia<br />i chwila dla siebie.</p><span className="hero-line" /></div></div>}
+        </div><div className="hero-shelf"><span className="eyebrow">NA NASZEJ PÓŁCE</span><div className="featured-covers">{featured?.items.map(book => <Link key={book.id} to={`/ksiazki/${book.id}`} title={book.title}><BookCover book={book} eager /></Link>)}</div><span className="shelf-caption">Otwórz się na nowe historie.</span></div></div>}
       </div>
     </header>
     <nav className="main-nav" aria-label="Nawigacja główna"><div className="container nav-inner">
