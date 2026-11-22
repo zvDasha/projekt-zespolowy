@@ -280,7 +280,8 @@ footer { background: var(--surface); border-top: 1px solid var(--line); }
 .select-trigger:hover:not(:disabled), .select-trigger[data-state='open'] { border-color: var(--green); }
 .select-arrow { display: inline-flex; color: var(--muted); }
 .select-trigger[data-state='open'] .select-arrow { transform: rotate(180deg); }
-.select-content { z-index: 60; width: var(--radix-select-trigger-width); min-width: min(220px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: min(340px, var(--radix-select-content-available-height)); overflow: hidden; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 36px #0c251c26; transform-origin: var(--radix-select-content-transform-origin); }
+[data-radix-popper-content-wrapper] { transition: none; }
+.select-content { z-index: 60; width: var(--radix-select-trigger-width); min-width: min(220px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: min(340px, var(--radix-select-content-available-height)); overflow: hidden; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 36px #0c251c26; }
 .select-content[data-state='open'] { animation: menu-in .18s ease-out; }
 .select-content[data-state='closed'] { animation: menu-out .12s ease-in; }
 .select-list { padding: 6px; }
@@ -303,7 +304,7 @@ button:not(:disabled):active, .button:active { transform: scale(.97); }
   .favorite-button:hover { transform: scale(1.1); }
 }
 @keyframes page-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes menu-in { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes menu-out { to { opacity: 0; transform: translateY(-3px) scale(.98); } }
+@keyframes menu-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes menu-out { to { opacity: 0; } }
 @keyframes theme-turn { from { opacity: 0; transform: rotate(-65deg) scale(.6); } to { opacity: 1; transform: rotate(0) scale(1); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
