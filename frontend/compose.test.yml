@@ -1,0 +1,25 @@
+# Osobna, tymczasowa baza tylko dla testów. Nie korzysta z danych projektu.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: frontend_test
+      POSTGRES_PASSWORD: frontend_test
+      POSTGRES_DB: library_frontend_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frontend_test -d library_frontend_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  api:
+    build: ../backend
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://frontend_test:frontend_test@db:5432/library_frontend_test
+      SECRET_KEY: frontend_test_only_not_for_real_accounts
+    depends_on:
+      db:
+        condition: service_healthy

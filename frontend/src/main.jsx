@@ -6,4 +6,13 @@ import './styles.css';
 import AuthProvider from './auth';
 import FavoritesProvider from './favorites';
 
-createRoot(document.getElementById('root')).render(<BrowserRouter><AuthProvider><FavoritesProvider><App /></FavoritesProvider></AuthProvider></BrowserRouter>);
+// Filtry i pola formularzy reagują od razu na zmianę adresu.
+createRoot(document.getElementById('root')).render(
+  <BrowserRouter useTransitions={false}>
+    <AuthProvider>
+      <FavoritesProvider>
+        <App />
+      </FavoritesProvider>
+    </AuthProvider>
+  </BrowserRouter>,
+);
