@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Search, Moon, Sun, UserRound, Bookmark, ScanLine, Sparkles } from 'lucide-react';
+import { BookOpen, Search, Moon, Sun, UserRound, Bookmark, Sparkles } from 'lucide-react';
 import { useApi } from '../hooks';
 import { BookCover } from './BookCard';
 import { useAuth } from '../auth';
+import Select from './Select';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -34,7 +35,9 @@ export default function Layout() {
     setGenre(new URLSearchParams(location.search).get('genre') || '');
     window.scrollTo({ top: 0, behavior: 'instant' });
     const heading = document.querySelector('main h1, main h2');
-    document.title = (heading?.textContent || 'Biblioteka') + ' — między wierszami';
+    document.title =
+      (location.pathname === '/katalog' ? 'Katalog książek' : heading?.textContent || 'Biblioteka') +
+      ' — między wierszami';
   }, [location.pathname, location.search]);
   function search(event) {
     event.preventDefault();
@@ -54,10 +57,12 @@ export default function Layout() {
           <div className="inline">
             <button
               className="icon-button"
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              onClick={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))}
               aria-label={theme === 'light' ? 'Włącz ciemny motyw' : 'Włącz jasny motyw'}
             >
-              {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
+              <span key={theme} className="theme-symbol">
+                {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
+              </span>
             </button>
             <span className="divider" />
             <Link to={user ? '/profil' : '/logowanie'} className="inline">
@@ -84,7 +89,8 @@ export default function Layout() {
             <Link to="/" className="brand" aria-label="Biblioteka — strona główna">
               <BookOpen size={33} strokeWidth={1.5} />
               <span>
-                Biblioteka<span className="brand-caption">MIĘDZY WIERSZAMI</span>
+                Biblioteka
+                <span className="brand-caption">MIĘDZY WIERSZAMI</span>
               </span>
             </Link>
             <form className="search-bar" onSubmit={search} role="search">
@@ -96,16 +102,13 @@ export default function Layout() {
                 onChange={(e) => setQuery(e.target.value)}
                 maxLength={100}
               />
-              <select
-                aria-label="Gatunek w wyszukiwarce"
+              <Select
+                label="Gatunek w wyszukiwarce"
+                className="search-genre"
                 value={genre}
-                onChange={(e) => setGenre(e.target.value)}
-              >
-                <option value="">Każdy gatunek</option>
-                {genres?.map((g) => (
-                  <option key={g}>{g}</option>
-                ))}
-              </select>
+                onChange={setGenre}
+                options={[['', 'Każdy gatunek'], ...(genres || []).map((g) => [g, g])]}
+              />
               <button type="submit">Szukaj</button>
             </form>
             <Link className="reservation-link inline" to="/rezerwacje">
@@ -156,14 +159,15 @@ export default function Layout() {
             <Sparkles size={16} /> Rekomendacje AI
           </NavLink>
           <NavLink to="/kluby">Kluby czytelnicze</NavLink>
-          <NavLink className="scan-link inline" to="/skaner">
-            <ScanLine size={18} /> Skanuj okładkę
-          </NavLink>
-          {['librarian', 'admin'].includes(user?.role) && <NavLink to="/bibliotekarz">Bibliotekarz</NavLink>}
+          {['librarian', 'admin'].includes(user?.role) && (
+            <NavLink className="staff-link" to="/bibliotekarz">
+              Bibliotekarz
+            </NavLink>
+          )}
           {user?.role === 'admin' && <NavLink to="/admin">Administrator</NavLink>}
         </div>
       </nav>
-      <main id="main" className="container main-content" tabIndex={-1}>
+      <main key={location.pathname} id="main" className="container main-content page-enter" tabIndex={-1}>
         <Outlet />
       </main>
       <footer>
@@ -175,7 +179,6 @@ export default function Layout() {
             </span>
           </Link>
           <p>Dobre historie są po to, żeby się nimi dzielić.</p>
-          <span>Projekt zespołowy · 2026</span>
         </div>
       </footer>
     </>

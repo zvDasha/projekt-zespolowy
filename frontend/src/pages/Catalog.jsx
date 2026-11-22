@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BookOpen, SlidersHorizontal, Sparkles, ScanLine, Bookmark } from 'lucide-react';
+import { BookOpen, SlidersHorizontal, Sparkles, Bookmark } from 'lucide-react';
 import { useApi } from '../hooks';
 import BookCard from '../components/BookCard';
-import { Empty, ErrorBox, Loading, PageTitle } from '../components/UI';
+import { Empty, ErrorBox, Loading } from '../components/UI';
+import Select from '../components/Select';
 import { useFavorites } from '../favorites';
 
 export default function Catalog({ home = false }) {
@@ -39,7 +40,7 @@ export default function Catalog({ home = false }) {
   }
   return (
     <>
-      {home ? (
+      {home && (
         <div className="section-heading">
           <div>
             <span className="eyebrow">ODKRYJ COŚ DLA SIEBIE</span>
@@ -50,10 +51,6 @@ export default function Catalog({ home = false }) {
             Cały katalog <BookOpen size={16} />
           </Link>
         </div>
-      ) : (
-        <PageTitle eyebrow="ZNAJDŹ SWOJĄ HISTORIĘ" title="Katalog książek">
-          Szukaj po tytule lub autorze. Wybierz, zarezerwuj i czytaj.
-        </PageTitle>
       )}
       {home ? (
         <div className="tabs" aria-label="Wybór książek">
@@ -77,25 +74,30 @@ export default function Catalog({ home = false }) {
           <div className="filters-top">
             <label>
               Gatunek
-              <select value={params.get('genre') || ''} onChange={(e) => change('genre', e.target.value)}>
-                <option value="">Wszystkie gatunki</option>
-                {genres?.map((g) => (
-                  <option key={g}>{g}</option>
-                ))}
-              </select>
+              <Select
+                label="Gatunek"
+                value={params.get('genre') || ''}
+                onChange={(value) => change('genre', value)}
+                options={[['', 'Wszystkie gatunki'], ...(genres || []).map((g) => [g, g])]}
+              />
             </label>
             <label>
               Sortowanie
-              <select value={params.get('sort') || '-added'} onChange={(e) => change('sort', e.target.value)}>
-                <option value="-added">Ostatnio dodane</option>
-                <option value="added">Najwcześniej dodane</option>
-                <option value="-rating">Najwyższa ocena</option>
-                <option value="rating">Najniższa ocena</option>
-                <option value="title">Tytuł: A–Z</option>
-                <option value="-title">Tytuł: Z–A</option>
-                <option value="-year">Rok: od najnowszych</option>
-                <option value="year">Rok: od najstarszych</option>
-              </select>
+              <Select
+                label="Sortowanie"
+                value={params.get('sort') || '-added'}
+                onChange={(value) => change('sort', value)}
+                options={[
+                  ['-added', 'Ostatnio dodane'],
+                  ['added', 'Najwcześniej dodane'],
+                  ['-rating', 'Najwyższa ocena'],
+                  ['rating', 'Najniższa ocena'],
+                  ['title', 'Tytuł: A–Z'],
+                  ['-title', 'Tytuł: Z–A'],
+                  ['-year', 'Rok: od najnowszych'],
+                  ['year', 'Rok: od najstarszych'],
+                ]}
+              />
             </label>
             <label className="checkbox">
               <input
@@ -214,13 +216,6 @@ export default function Catalog({ home = false }) {
                 <small>Sprawdź dostępne egzemplarze</small>
               </span>
             </div>
-            <Link to="/skaner">
-              <ScanLine />
-              <span>
-                <strong>Masz książkę na oku?</strong>
-                <small>Wyszukaj ją ze zdjęcia okładki</small>
-              </span>
-            </Link>
           </div>
         </>
       )}

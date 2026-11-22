@@ -4,6 +4,7 @@ import { useAuth } from '../auth';
 import { useApi } from '../hooks';
 import { roleLabels } from './Profile';
 import { dateLabel, ErrorBox, Loading, Notice, PageTitle } from '../components/UI';
+import Select from '../components/Select';
 
 function UserRow({ user, self, busy, update }) {
   const [role, setRole] = useState(user.role);
@@ -25,18 +26,13 @@ function UserRow({ user, self, busy, update }) {
             update(user, { role });
           }}
         >
-          <select
+          <Select
             value={role}
-            onChange={(e) => setRole(e.target.value)}
+            onChange={setRole}
             disabled={self || busy}
-            aria-label={`Rola: ${user.email}`}
-          >
-            {Object.entries(roleLabels).map(([value, label]) => (
-              <option value={value} key={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            label={`Rola: ${user.email}`}
+            options={Object.entries(roleLabels)}
+          />
           <button disabled={self || busy || role === user.role}>Zapisz</button>
         </form>
       </td>
@@ -105,14 +101,12 @@ export default function Users() {
         </label>
         <label>
           Rola
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="">Wszystkie role</option>
-            {Object.entries(roleLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <Select
+            label="Rola"
+            value={role}
+            onChange={setRole}
+            options={[['', 'Wszystkie role'], ...Object.entries(roleLabels)]}
+          />
         </label>
       </div>
       <ErrorBox error={error || result.error} reload={result.error ? result.reload : undefined} />

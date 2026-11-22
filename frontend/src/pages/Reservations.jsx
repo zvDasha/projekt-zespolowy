@@ -4,6 +4,7 @@ import { RefreshCw } from 'lucide-react';
 import { api, refreshData } from '../api';
 import { useApi } from '../hooks';
 import { dateLabel, Empty, ErrorBox, Loading, Notice, PageTitle, Status } from '../components/UI';
+import Select from '../components/Select';
 
 export default function Reservations({ staff = false }) {
   const [filter, setFilter] = useState('active');
@@ -59,14 +60,19 @@ export default function Reservations({ staff = false }) {
       <div className="filters-top">
         <label>
           Status
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="active">Aktywne rezerwacje</option>
-            <option value="pending">Oczekuje na odbiór</option>
-            <option value="confirmed">Wypożyczone</option>
-            <option value="returned">Zwrócone</option>
-            <option value="cancelled">Anulowane</option>
-            <option value="all">Cała historia</option>
-          </select>
+          <Select
+            label="Status"
+            value={filter}
+            onChange={setFilter}
+            options={[
+              ['active', 'Aktywne rezerwacje'],
+              ['pending', 'Oczekuje na odbiór'],
+              ['confirmed', 'Wypożyczone'],
+              ['returned', 'Zwrócone'],
+              ['cancelled', 'Anulowane'],
+              ['all', 'Cała historia'],
+            ]}
+          />
         </label>
         <label>
           {staff ? 'Książka, czytelnik lub egzemplarz' : 'Szukaj w rezerwacjach'}
