@@ -1,0 +1,50 @@
+[
+  {
+    "isbn": "9788373271890",
+    "title": "Lalka",
+    "author": "Bolesław Prus",
+    "cover_url": "/images/covers/lalka.jpg",
+    "source": "https://www.greg.pl/lektury/",
+    "image_url": "https://www.greg.pl/imgs/covers/500/Lalka_lll.jpg"
+  },
+  {
+    "isbn": "9780132350884",
+    "title": "Clean Code. Czysty kod",
+    "author": "Robert C. Martin",
+    "cover_url": "/images/covers/clean-code.jpg",
+    "source": "https://helion.pl/ksiazki/czysty-kod-podrecznik-dobrego-programisty-robert-c-martin,czykvv.htm",
+    "image_url": "https://static01.ebookpoint.pl/global/okladki/326x466/czykvv.jpg"
+  },
+  {
+    "isbn": "9788372786777",
+    "title": "Pułapki myślenia. O myśleniu szybkim i wolnym",
+    "author": "Daniel Kahneman",
+    "cover_url": "/images/covers/thinking.jpg",
+    "source": "https://www.mediarodzina.pl/produkt/pulapki-myslenia/",
+    "image_url": "https://www.mediarodzina.pl/mrcore/uploads/2018/11/book-cover-1.jpg"
+  },
+  {
+    "isbn": "9788308049051",
+    "title": "Solaris",
+    "author": "Stanisław Lem",
+    "cover_url": "/images/covers/solaris.jpg",
+    "source": "https://www.wydawnictwoliterackie.pl/produkt/2302/solaris",
+    "image_url": "https://www.wydawnictwoliterackie.pl/storage/images/products/223x307/solaris_60588135b7fe8.jpg"
+  },
+  {
+    "isbn": "9788328367531",
+    "title": "Uczenie maszynowe z użyciem Scikit-Learn i TensorFlow",
+    "author": "Aurélien Géron",
+    "cover_url": "/images/covers/machine-learning.jpg",
+    "source": "https://helion.pl/ksiazki/uczenie-maszynowe-z-uzyciem-scikit-learn-i-tensorflow-aurelien-geron,uczema.htm",
+    "image_url": "https://static01.ebookpoint.pl/global/okladki/326x466/uczema.jpg"
+  },
+  {
+    "isbn": "9788328069411",
+    "title": "Atomowe nawyki",
+    "author": "James Clear",
+    "cover_url": "/images/covers/habits.png",
+    "source": "https://wydawnictwowam.pl/prod.atomowe-nawyki.48310.htm",
+    "image_url": "https://wydawnictwowam.pl/sites/default/files/paste_1792579946_0.png"
+  }
+]
