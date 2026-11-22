@@ -5,9 +5,14 @@ import { useAuth } from '../auth';
 import { api } from '../api';
 import { ErrorBox, Notice, PageTitle } from '../components/UI';
 
-export const roleLabels = { reader: 'Czytelnik', librarian: 'Bibliotekarz', admin: 'Administrator' };
+export const roleLabels = {
+  reader: 'Czytelnik',
+  librarian: 'Bibliotekarz',
+  admin: 'Administrator',
+};
 export default function Profile() {
   const { user, setUser } = useAuth();
+  const reader = user.role === 'reader';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -23,7 +28,10 @@ export default function Profile() {
         if (values.new_password !== values.confirm) throw new Error('Hasła muszą być takie same.');
         await api('/users/me/change-password', {
           method: 'POST',
-          body: { current_password: values.current_password, new_password: values.new_password },
+          body: {
+            current_password: values.current_password,
+            new_password: values.new_password,
+          },
         });
         form.reset();
       } else {
@@ -32,8 +40,12 @@ export default function Profile() {
             method: 'PATCH',
             body: {
               full_name: values.full_name.trim(),
-              field_of_study: values.field_of_study.trim() || null,
-              preferences_text: values.preferences_text.trim() || null,
+              ...(reader
+                ? {
+                    field_of_study: values.field_of_study.trim() || null,
+                    preferences_text: values.preferences_text.trim() || null,
+                  }
+                : {}),
             },
           }),
         );
@@ -72,7 +84,7 @@ export default function Profile() {
       <Notice>{message}</Notice>
       <div className="two-columns">
         <section className="panel">
-          <h2>Dane i zainteresowania</h2>
+          <h2>{reader ? 'Dane i zainteresowania' : 'Dane osobowe'}</h2>
           <form className="form-stack" onSubmit={save}>
             <label>
               Imię i nazwisko
@@ -83,28 +95,32 @@ export default function Profile() {
               <input value={user.email} disabled readOnly />
               <small>Adres e-mail jest przypisany do Twojego konta.</small>
             </label>
-            <label>
-              Kierunek studiów
-              <input
-                name="field_of_study"
-                defaultValue={user.field_of_study || ''}
-                maxLength={150}
-                placeholder="Np. psychologia"
-              />
-            </label>
-            <label>
-              Co lubisz czytać?
-              <textarea
-                name="preferences_text"
-                defaultValue={user.preferences_text || ''}
-                maxLength={5000}
-                rows={5}
-                placeholder="Ulubione tematy, autorzy, ostatnie odkrycia…"
-              />
-            </label>
-            <small className="muted">
-              Te informacje przygotują Twój profil na uruchomienie rekomendacji AI.
-            </small>
+            {reader && (
+              <>
+                <label>
+                  Kierunek studiów
+                  <input
+                    name="field_of_study"
+                    defaultValue={user.field_of_study || ''}
+                    maxLength={150}
+                    placeholder="Np. psychologia"
+                  />
+                </label>
+                <label>
+                  Co lubisz czytać?
+                  <textarea
+                    name="preferences_text"
+                    defaultValue={user.preferences_text || ''}
+                    maxLength={5000}
+                    rows={5}
+                    placeholder="Ulubione tematy, autorzy, ostatnie odkrycia…"
+                  />
+                </label>
+                <small className="muted">
+                  Te informacje przygotują Twój profil na uruchomienie rekomendacji AI.
+                </small>
+              </>
+            )}
             <button className="button" disabled={busy}>
               Zapisz profil
             </button>

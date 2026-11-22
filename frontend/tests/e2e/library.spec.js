@@ -5,7 +5,9 @@ let sequence = 0;
 const nextIsbn = () => '978' + String(Date.now()).slice(-8) + String(sequence++).padStart(2, '0');
 const title = (prefix) => `${prefix} ${Date.now()}-${sequence++}`;
 async function token(request, email = 'librarian@library.pl', password = 'lib123') {
-  const response = await request.post('/api/auth/login', { form: { username: email, password } });
+  const response = await request.post('/api/auth/login', {
+    form: { username: email, password },
+  });
   expect(response.ok()).toBeTruthy();
   return (await response.json()).access_token;
 }
@@ -17,7 +19,12 @@ async function createReader(request) {
     data: { email, password, full_name: 'Czytelnik Testowy' },
   });
   expect(response.status()).toBe(201);
-  return { ...(await response.json()), email, password, token: await token(request, email, password) };
+  return {
+    ...(await response.json()),
+    email,
+    password,
+    token: await token(request, email, password),
+  };
 }
 async function createBook(request, name = title('Książka testowa'), copies = 2) {
   const response = await request.post('/api/books', {
@@ -42,6 +49,11 @@ async function login(page, email, password) {
   await expect(page.getByRole('button', { name: 'Wyloguj' })).toBeVisible();
 }
 
+async function choose(page, name, option) {
+  await page.getByRole('combobox', { name, exact: true }).click();
+  await page.getByRole('option', { name: option, exact: true }).click();
+}
+
 test.beforeAll(async ({ request }) => {
   const auth = headers(await token(request));
   const covers = JSON.parse(await readFile(new URL('../../scripts/covers.json', import.meta.url), 'utf8'));
@@ -62,6 +74,8 @@ test.beforeAll(async ({ request }) => {
 
 test('hero search, real covers, title and author search, filters and history', async ({ page }) => {
   await page.goto('/');
+  await expect(page.locator('a[href="/skaner"]')).toHaveCount(0);
+  await expect(page.getByText('Projekt zespołowy · 2026')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Twoja kolejna wielka historia.' })).toBeVisible();
   await expect(page.locator('.book-grid .book-card')).toHaveCount(6);
   for (const name of [
@@ -78,15 +92,18 @@ test('hero search, real covers, title and author search, filters and history', a
   }
   await page.getByLabel('Tytuł lub autor', { exact: true }).fill('Solaris');
   await page.getByRole('button', { name: 'Szukaj', exact: true }).click();
+  await expect(page.locator('main h1')).toHaveCount(0);
+  await expect(page.getByText('ZNAJDŹ SWOJĄ HISTORIĘ')).toHaveCount(0);
+  await expect(page.getByText('Szukaj po tytule lub autorze. Wybierz, zarezerwuj i czytaj.')).toHaveCount(0);
   await expect(page.locator('.book-card')).toHaveCount(1);
   await expect(page.locator('.book-card h3')).toHaveText('Solaris');
   await page.getByLabel('Tytuł lub autor', { exact: true }).fill('Kahneman');
   await page.getByRole('button', { name: 'Szukaj', exact: true }).click();
   await expect(page.locator('.book-card h3')).toContainText('Pułapki myślenia');
   await page.getByRole('button', { name: 'Wyczyść filtry' }).click();
-  await page.getByRole('combobox', { name: 'Gatunek', exact: true }).selectOption('Informatyka');
+  await choose(page, 'Gatunek', 'Informatyka');
   await expect(page.locator('.book-card')).toHaveCount(2);
-  await page.getByLabel('Sortowanie').selectOption('title');
+  await choose(page, 'Sortowanie', 'Tytuł: A–Z');
   await expect(page.locator('.book-card h3').first()).toHaveText('Clean Code. Czysty kod');
   await page.getByText('Więcej filtrów').click();
   await page.getByLabel('Rok od').fill('2015');
@@ -107,12 +124,18 @@ test('responsive layout and dark theme survive refresh', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('.book-grid .book-card').first()).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-    await page.screenshot({ path: `.artifacts/home-${width}.png`, fullPage: true });
+    await page.screenshot({
+      path: `.artifacts/home-${width}.png`,
+      fullPage: true,
+    });
   }
   await page.getByRole('button', { name: 'Włącz ciemny motyw' }).click();
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.screenshot({ path: '.artifacts/home-dark-mobile.png', fullPage: true });
+  await page.screenshot({
+    path: '.artifacts/home-dark-mobile.png',
+    fullPage: true,
+  });
 });
 
 test('network errors can be retried and no results are clearly explained', async ({ page }) => {
@@ -183,6 +206,85 @@ test('registration, profile editing, password change and test reset work', async
   await login(page, email, 'Resetowane123');
 });
 
+for (const role of ['librarian', 'admin']) {
+  test(`${role} profile only edits personal details and preserves reader preferences`, async ({
+    page,
+    request,
+  }) => {
+    const user = await createReader(request);
+    await request.patch('/api/users/me', {
+      headers: headers(user.token),
+      data: { field_of_study: 'Psychologia', preferences_text: 'Literatura' },
+    });
+    const admin = await token(request, 'admin@library.pl', 'admin123');
+    expect(
+      (await request.patch(`/api/users/${user.id}`, { headers: headers(admin), data: { role } })).ok(),
+    ).toBeTruthy();
+    await login(page, user.email, user.password);
+    await page.goto('/profil');
+    await expect(page.getByLabel('Kierunek studiów')).toHaveCount(0);
+    await expect(page.getByLabel('Co lubisz czytać?')).toHaveCount(0);
+    await expect(page.getByPlaceholder('Np. psychologia')).toHaveCount(0);
+    await page.getByLabel('Imię i nazwisko').fill('Pracownik Biblioteki');
+    const saving = page.waitForRequest(
+      (req) => req.url().endsWith('/api/users/me') && req.method() === 'PATCH',
+    );
+    await page.getByRole('button', { name: 'Zapisz profil' }).click();
+    expect((await saving).postDataJSON()).toEqual({ full_name: 'Pracownik Biblioteki' });
+    await expect(page.getByRole('status')).toContainText('Twój profil został zapisany');
+    const profile = await (await request.get('/api/users/me', { headers: headers(user.token) })).json();
+    expect(profile).toMatchObject({
+      full_name: 'Pracownik Biblioteki',
+      field_of_study: 'Psychologia',
+      preferences_text: 'Literatura',
+    });
+  });
+}
+
+test('styled reservation dropdown supports keyboard, dismissal and mobile dark mode', async ({
+  page,
+  request,
+}) => {
+  const user = await createReader(request);
+  await login(page, user.email, user.password);
+  await page.goto('/rezerwacje');
+  const status = page.getByRole('combobox', { name: 'Status', exact: true });
+  await status.focus();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('listbox')).toBeVisible();
+  await expect(page.getByRole('option', { name: 'Aktywne rezerwacje', exact: true })).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(page.getByRole('option', { name: 'Cała historia', exact: true })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(status).toHaveText('Cała historia');
+  await expect(status).toBeFocused();
+  await status.click();
+  await page.keyboard.press('Home');
+  await expect(page.getByRole('option', { name: 'Aktywne rezerwacje', exact: true })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(status).toHaveText('Cała historia');
+  await status.click();
+  await page.mouse.click(10, 20);
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Włącz ciemny motyw' }).click();
+  await status.click();
+  const menu = page.getByRole('listbox');
+  await expect(menu).toBeVisible();
+  const box = await menu.boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await page.screenshot({
+    path: '.artifacts/reservations-dropdown-dark.png',
+    animations: 'disabled',
+  });
+  await page.getByRole('option', { name: 'Zwrócone', exact: true }).click();
+  await expect(status).toHaveText('Zwrócone');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/katalog');
+  expect(await page.locator('main').evaluate((el) => getComputedStyle(el).animationName)).toBe('none');
+});
+
 test('favorites persist locally and stay separate for each account', async ({ page, request }) => {
   const first = await createReader(request);
   const second = await createReader(request);
@@ -208,7 +310,12 @@ test('reservation, librarian checkout, review gate and return update real availa
   const book = await createBook(request);
   const auth = headers(reader.token);
   expect(
-    (await request.post(`/api/books/${book.id}/reviews`, { headers: auth, data: { rating: 4 } })).status(),
+    (
+      await request.post(`/api/books/${book.id}/reviews`, {
+        headers: auth,
+        data: { rating: 4 },
+      })
+    ).status(),
   ).toBe(403);
   await login(page, reader.email, reader.password);
   await page.goto(`/ksiazki/${book.id}`);
@@ -217,7 +324,12 @@ test('reservation, librarian checkout, review gate and return update real availa
   await expect(page.getByRole('status')).toContainText('Książka została zarezerwowana');
   await expect(page.getByText('1 z 2 egzemplarzy dostępnych')).toBeVisible();
   expect(
-    (await request.post('/api/reservations', { headers: auth, data: { book_id: book.id } })).status(),
+    (
+      await request.post('/api/reservations', {
+        headers: auth,
+        data: { book_id: book.id },
+      })
+    ).status(),
   ).toBe(409);
   const staff = await browser.newPage({ baseURL: 'http://127.0.0.1:3001' });
   try {
@@ -232,14 +344,19 @@ test('reservation, librarian checkout, review gate and return update real availa
     await page.getByRole('button', { name: 'Dodaj opinię' }).click();
     await expect(page.locator('.review')).toContainText('Sprawdzona opinia po wypożyczeniu.');
     expect(
-      (await request.post(`/api/books/${book.id}/reviews`, { headers: auth, data: { rating: 5 } })).status(),
+      (
+        await request.post(`/api/books/${book.id}/reviews`, {
+          headers: auth,
+          data: { rating: 5 },
+        })
+      ).status(),
     ).toBe(409);
     await staff.getByRole('button', { name: 'Przyjmij zwrot' }).click();
     await expect(staff.getByRole('status')).toContainText('Przyjęto zwrot');
     await page.reload();
     await expect(page.getByText('2 z 2 egzemplarzy dostępnych')).toBeVisible();
     await page.goto('/rezerwacje');
-    await page.getByRole('combobox', { name: 'Status', exact: true }).selectOption('returned');
+    await choose(page, 'Status', 'Zwrócone');
     await expect(page.locator('.reservation-card')).toContainText(book.title);
   } finally {
     await staff.close();
@@ -302,9 +419,11 @@ test('CSV dry-run does not write and actual import skips duplicate ISBN', async 
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('szablon-ksiazek.csv');
   const csv = `title,author,isbn,genre,publication_year,copies\n${name},Autor,${isbn},Testy,2024,2\nDuplikat,Prus,9788373271890,Klasyka,1890,1\n`;
-  await page
-    .getByLabel('Plik z książkami')
-    .setInputFiles({ name: 'test.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  await page.getByLabel('Plik z książkami').setInputFiles({
+    name: 'test.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(csv),
+  });
   await page.getByRole('button', { name: 'Sprawdź plik' }).click();
   await expect(page.getByRole('heading', { name: 'Wynik sprawdzania' })).toBeVisible();
   expect((await (await request.get('/api/books?isbn=' + isbn)).json()).total).toBe(0);
@@ -318,7 +437,9 @@ test('CSV dry-run does not write and actual import skips duplicate ISBN', async 
 test('XLSX import is accepted and unsupported file types are blocked', async ({ page, request }) => {
   const found = await (await request.get('/api/books?isbn=9780000000902')).json();
   for (const book of found.items)
-    await request.delete('/api/books/' + book.id, { headers: headers(await token(request)) });
+    await request.delete('/api/books/' + book.id, {
+      headers: headers(await token(request)),
+    });
   await login(page, 'librarian@library.pl', 'lib123');
   await page.goto('/bibliotekarz/import');
   await page.getByLabel('Plik z książkami').setInputFiles('tests/fixtures/books.xlsx');
@@ -326,9 +447,11 @@ test('XLSX import is accepted and unsupported file types are blocked', async ({ 
   await page.getByRole('button', { name: 'Importuj poprawne wiersze (1)' }).click();
   await expect(page.getByRole('heading', { name: 'Import zakończony' })).toBeVisible();
   expect((await (await request.get('/api/books?isbn=9780000000902')).json()).total).toBe(1);
-  await page
-    .getByLabel('Plik z książkami')
-    .setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+  await page.getByLabel('Plik z książkami').setInputFiles({
+    name: 'notes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('hello'),
+  });
   await expect(page.getByRole('alert')).toContainText('Wybierz plik CSV lub XLSX');
   await expect(page.getByRole('button', { name: 'Sprawdź plik' })).toBeDisabled();
 });
@@ -341,7 +464,7 @@ test('administrator changes roles and activity, self-protection remains enabled'
   await login(page, 'admin@library.pl', 'admin123');
   await page.goto('/admin/uzytkownicy');
   await page.getByLabel('Znajdź użytkownika').fill(reader.email);
-  await page.getByLabel(`Rola: ${reader.email}`).selectOption('librarian');
+  await choose(page, `Rola: ${reader.email}`, 'Bibliotekarz');
   page.on('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Zapisz', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Zapisano zmiany konta');
@@ -349,7 +472,9 @@ test('administrator changes roles and activity, self-protection remains enabled'
   await expect(page.getByText('Zablokowane', { exact: true })).toBeVisible();
   expect(
     (
-      await request.post('/api/auth/login', { form: { username: reader.email, password: reader.password } })
+      await request.post('/api/auth/login', {
+        form: { username: reader.email, password: reader.password },
+      })
     ).status(),
   ).toBe(403);
   await page.getByRole('button', { name: 'Odblokuj', exact: true }).click();
@@ -378,18 +503,6 @@ test('dashboard reports actual library counts and unfinished modules are explici
   await expect(page.locator('textarea')).toHaveCount(0);
 });
 
-test('cover OCR reads a real cover and sends an editable catalog query', async ({ page }) => {
-  test.setTimeout(120000);
-  await page.goto('/skaner');
-  await page.getByLabel('Zdjęcie okładki').setInputFiles('public/images/covers/clean-code.jpg');
-  await page.getByRole('button', { name: 'Odczytaj tekst', exact: true }).click();
-  await expect(page.getByLabel('Odczytany tekst')).toBeVisible({ timeout: 90000 });
-  await expect(page.getByLabel('Odczytany tekst')).toHaveValue(/kod|martin/i);
-  await page.locator('main').getByLabel('Tytuł lub autor', { exact: true }).fill('Martin');
-  await page.getByRole('button', { name: 'Szukaj w katalogu' }).click();
-  await expect(page.locator('.book-card h3')).toHaveText('Clean Code. Czysty kod');
-});
-
 test('catalog pagination and availability filtering use server results', async ({ page, request }) => {
   const prefix = title('Paginacja');
   for (let i = 0; i < 13; i++)
@@ -415,5 +528,7 @@ test('availability changes made by another reader appear through polling', async
     data: { book_id: book.id },
   });
   expect(response.status()).toBe(201);
-  await expect(page.getByText('1 z 2 egzemplarzy dostępnych')).toBeVisible({ timeout: 18000 });
+  await expect(page.getByText('1 z 2 egzemplarzy dostępnych')).toBeVisible({
+    timeout: 18000,
+  });
 });
