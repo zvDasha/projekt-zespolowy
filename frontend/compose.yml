@@ -1,0 +1,11 @@
+# Łączymy z głównym docker-compose.yml, więc ścieżki liczymy od katalogu repozytorium.
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    depends_on:
+      - backend
