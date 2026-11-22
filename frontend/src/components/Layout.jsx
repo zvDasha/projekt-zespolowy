@@ -3,9 +3,11 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { BookOpen, Search, Moon, Sun, UserRound, Bookmark, ScanLine, Sparkles } from 'lucide-react';
 import { useApi } from '../hooks';
 import { BookCover } from './BookCard';
+import { useAuth } from '../auth';
 
 export default function Layout() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const home = location.pathname === '/';
   const [query, setQuery] = useState('');
@@ -35,7 +37,7 @@ export default function Layout() {
     <a className="skip-link" href="#main">Przejdź do treści</a>
     <div className="utility"><div className="container utility-inner">
       <span>Mała przerwa. Wielka historia.</span>
-      <div className="inline"><button className="icon-button" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Włącz ciemny motyw' : 'Włącz jasny motyw'}>{theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}</button><span className="divider" /><Link to="/logowanie" className="inline"><UserRound size={16} /> Zaloguj się</Link></div>
+      <div className="inline"><button className="icon-button" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Włącz ciemny motyw' : 'Włącz jasny motyw'}>{theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}</button><span className="divider" /><Link to={user ? '/profil' : '/logowanie'} className="inline"><UserRound size={16} />{user ? user.full_name.split(' ')[0] : 'Zaloguj się'}</Link>{user && <button className="utility-logout" onClick={() => { logout(); navigate('/'); }}>Wyloguj</button>}</div>
     </div></div>
     <header className={`hero ${home ? '' : 'hero-compact'}`}>
       <div className="container">
@@ -58,6 +60,7 @@ export default function Layout() {
     </header>
     <nav className="main-nav" aria-label="Nawigacja główna"><div className="container nav-inner">
       <NavLink to="/" end>Odkrywaj</NavLink><NavLink to="/katalog">Katalog książek</NavLink><NavLink to="/ulubione">Ulubione</NavLink><NavLink to="/rekomendacje" className="inline"><Sparkles size={16} /> Rekomendacje AI</NavLink><NavLink to="/kluby">Kluby czytelnicze</NavLink><NavLink className="scan-link inline" to="/skaner"><ScanLine size={18} /> Skanuj okładkę</NavLink>
+      {['librarian', 'admin'].includes(user?.role) && <NavLink to="/bibliotekarz">Bibliotekarz</NavLink>}{user?.role === 'admin' && <NavLink to="/admin">Administrator</NavLink>}
     </div></nav>
     <main id="main" className="container main-content" tabIndex={-1}><Outlet /></main>
     <footer><div className="container footer-inner"><Link to="/" className="brand"><BookOpen size={26} /><span>Biblioteka<span className="brand-caption">MIĘDZY WIERSZAMI</span></span></Link><p>Dobre historie są po to, żeby się nimi dzielić.</p><span>Projekt zespołowy · 2026</span></div></footer>
