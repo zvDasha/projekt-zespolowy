@@ -116,7 +116,7 @@ export default function Layout() {
             </Link>
           </div>
           {home && (
-            <div className="hero-content">
+            <div className="hero-content page-enter">
               <div className="hero-copy">
                 <span className="eyebrow">OTWÓRZ KSIĄŻKĘ. ODKRYJ WIĘCEJ.</span>
                 <h1>
