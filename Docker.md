@@ -7,11 +7,11 @@
 
 ## **Podstawowe komendy Docker**
 
-1. **Uruchomienie projektu** - Buduje obrazy i uruchamia bazę danych oraz backend:
+1. **Uruchomienie projektu** - Buduje obrazy i uruchamia bazę danych, backend oraz frontend:
    ```bash
    docker compose up --build
    ```
-2. **Uruchomienie w tle** - Uruchamia kontenery w tle, nie blokując terminala:
+2. **Uruchomienie w tle** - Uruchamia wszystkie kontenery w tle, nie blokując terminala:
    ```bash
    docker compose up -d --build
    ```
@@ -30,7 +30,7 @@
 - **Sprawdzenie działania serwera (Healthcheck):** http://localhost:8000/health - zwraca status działania aplikacji.
 - **Podgląd listy książek (JSON):** http://localhost:8000/books - wyświetla przykładowe książki pobrane z bazy danych.
 - **Baza danych PostgreSQL:** `localhost:5432` - port do połączenia przez programy zewnętrzne (np. DBeaver, pgAdmin). Dane logowania znajdują się w pliku `.env`.
-- **Frontend (React):** `http://localhost:3000` - adres interfejsu użytkownika (zostanie aktywowany po podłączeniu kontenera frontendu).
+- **Frontend (React):** http://localhost:3000 - adres interfejsu użytkownika.
 
 ## **Podgląd bazy danych w terminalu**
 

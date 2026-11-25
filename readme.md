@@ -10,17 +10,17 @@ Jeżeli brakuje pliku `.env`, należy utworzyć go z szablonu:
 cp .env.example .env
 ```
 
-Uruchomienie frontendu, backendu i bazy danych:
+Uruchomienie frontendu, backendu i bazy danych jedną komendą:
 
 ```bash
-docker compose -f docker-compose.yml -f frontend/compose.yml up -d --build
+docker compose up -d --build
 ```
 
 Strona jest dostępna pod adresem [localhost:3000](http://localhost:3000), backend na porcie `8000`, a dokumentacja API w [Swagger UI](http://localhost:8000/docs). Baza danych korzysta z portu `5432`.
 
-Jeśli port `3000` zajmuje wcześniej uruchomione `npm run dev`, proces należy zakończyć przez `Ctrl+C`. Po zmianach w kodzie należy powtórzyć polecenie Docker z `--build`.
+ Jeśli port `3000` zajmuje wcześniej uruchomione `npm run dev`, proces należy zakończyć przez `Ctrl+C`. Po zmianach w kodzie należy powtórzyć polecenie Docker z `--build`.
 
-Nowa baza automatycznie otrzymuje przykładowe książki i konta:
+Nowa baza automatycznie otrzymuje przykładowe książki (wraz z okładkami) i konta:
 
 | Rola | E-mail | Hasło |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ Nowa baza automatycznie otrzymuje przykładowe książki i konta:
 Zatrzymanie projektu z zachowaniem danych:
 
 ```bash
-docker compose -f docker-compose.yml -f frontend/compose.yml down
+docker compose down
 ```
 
 **Opcja `-v` usuwa wolumen bazy danych — należy ją pominąć.**

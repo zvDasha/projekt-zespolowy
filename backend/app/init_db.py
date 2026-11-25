@@ -4,12 +4,32 @@ from app.database import engine, SessionLocal, Base
 from app.models import User, Book, BookCopy, Reservation, Review, Favorite, ChatMessage
 from app.db_rules import install_db_rules
 
+def _ensure_default_covers(db):
+    default_covers = {
+        "9788373271890": "/images/covers/lalka.jpg",
+        "9780132350884": "/images/covers/clean-code.jpg",
+        "9788372786777": "/images/covers/thinking.jpg",
+        "9788308049051": "/images/covers/solaris.jpg",
+        "9788328367531": "/images/covers/machine-learning.jpg",
+        "9788328069411": "/images/covers/habits.png",
+    }
+    updated = False
+    for isbn, cover_url in default_covers.items():
+        book = db.query(Book).filter(Book.isbn == isbn, Book.cover_url.is_(None)).first()
+        if book:
+            book.cover_url = cover_url
+            updated = True
+    if updated:
+        db.commit()
+
+
 def init_database():
     Base.metadata.create_all(bind=engine)
     install_db_rules(engine)
     db = SessionLocal()
     try:
         if db.query(User).first():
+            _ensure_default_covers(db)
             return
 
         # Users (Admin, Librarian, Readers)
@@ -51,7 +71,8 @@ def init_database():
             isbn="9788373271890",
             genre="Klasyka",
             publication_year=1890,
-            description="Powieść społeczno-obyczajowa o losach Stanisława Wokulskiego w XIX-wiecznej Warszawie."
+            description="Powieść społeczno-obyczajowa o losach Stanisława Wokulskiego w XIX-wiecznej Warszawie.",
+            cover_url="/images/covers/lalka.jpg",
         )
         book2 = Book(
             title="Clean Code. Czysty kod",
@@ -59,7 +80,8 @@ def init_database():
             isbn="9780132350884",
             genre="Informatyka",
             publication_year=2008,
-            description="Podręcznik dobrego programowania i tworzenia czytelnego, łatwego w utrzymaniu kodu."
+            description="Podręcznik dobrego programowania i tworzenia czytelnego, łatwego w utrzymaniu kodu.",
+            cover_url="/images/covers/clean-code.jpg",
         )
         book3 = Book(
             title="Pułapki myślenia. O myśleniu szybkim i wolnym",
@@ -67,7 +89,8 @@ def init_database():
             isbn="9788372786777",
             genre="Psychologia",
             publication_year=2011,
-            description="Przełomowa książka o dwóch systemach myślenia, które kształtują nasze decyzje i osądy."
+            description="Przełomowa książka o dwóch systemach myślenia, które kształtują nasze decyzje i osądy.",
+            cover_url="/images/covers/thinking.jpg",
         )
         book4 = Book(
             title="Solaris",
@@ -75,7 +98,8 @@ def init_database():
             isbn="9788308049051",
             genre="Fantastyka",
             publication_year=1961,
-            description="Klasyka światowego science-fiction opowiadająca o kontakcie z niezrozumiałą, obcą inteligencją."
+            description="Klasyka światowego science-fiction opowiadająca o kontakcie z niezrozumiałą, obcą inteligencją.",
+            cover_url="/images/covers/solaris.jpg",
         )
         book5 = Book(
             title="Uczenie maszynowe z użyciem Scikit-Learn i TensorFlow",
@@ -83,7 +107,8 @@ def init_database():
             isbn="9788328367531",
             genre="Informatyka",
             publication_year=2020,
-            description="Praktyczny przewodnik po budowaniu inteligentnych systemów, sieciach neuronowych i uczeniu głębokim."
+            description="Praktyczny przewodnik po budowaniu inteligentnych systemów, sieciach neuronowych i uczeniu głębokim.",
+            cover_url="/images/covers/machine-learning.jpg",
         )
         book6 = Book(
             title="Atomowe nawyki",
@@ -91,7 +116,8 @@ def init_database():
             isbn="9788328069411",
             genre="Rozwój osobisty",
             publication_year=2018,
-            description="Sprawdzony sposób na budowanie dobrych nawyków i wyzbywanie się złych za pomocą drobnych zmian."
+            description="Sprawdzony sposób na budowanie dobrych nawyków i wyzbywanie się złych za pomocą drobnych zmian.",
+            cover_url="/images/covers/habits.png",
         )
         db.add_all([book1, book2, book3, book4, book5, book6])
         db.flush()
