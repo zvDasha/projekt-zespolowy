@@ -29,5 +29,17 @@ services:
       db:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    container_name: library_frontend
+    restart: always
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
