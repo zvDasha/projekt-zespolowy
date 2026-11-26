@@ -155,12 +155,28 @@ class ReservationResponse(BaseModel):
     status: str
     book_id: int
     book_title: str
+    book_author: str = ""
+    book_genre: str = ""
+    book_cover_url: Optional[str] = None
     inventory_number: str
     user_id: int
     user_email: str
     reserved_at: datetime
     due_date: Optional[datetime] = None
     returned_at: Optional[datetime] = None
+    is_overdue: bool = False
+    has_review: bool = False
+    user_rating: Optional[int] = None
+
+
+class ReservationHistorySummary(BaseModel):
+    total: int
+    pending: int
+    borrowed: int
+    returned: int
+    cancelled: int
+    overdue: int
+    items: list[ReservationResponse]
 
 class ReviewCreate(BaseModel):
     rating: int = Field(..., ge=1, le=5)
