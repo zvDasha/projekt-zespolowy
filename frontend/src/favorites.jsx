@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
+import { api } from './api';
 import { useAuth } from './auth';
 
 const FavoritesContext = createContext(null);
 export const useFavorites = () => useContext(FavoritesContext);
+
 export function readFavorites(key) {
   try {
     const values = JSON.parse(localStorage.getItem(key) || '[]');
@@ -13,29 +15,62 @@ export function readFavorites(key) {
     return [];
   }
 }
+
+function saveLocalFavorites(key, ids) {
+  try {
+    localStorage.setItem(key, JSON.stringify(ids));
+  } catch {
+    /* Pamięć lokalna jest opcjonalnym cachem dla API. */
+  }
+}
+
 export default function FavoritesProvider({ children }) {
   const { user } = useAuth();
   const key = 'library-favorites-' + (user?.id || 'guest');
   const [saved, setSaved] = useState({ key, ids: readFavorites(key) });
   const [error, setError] = useState('');
   const ids = saved.key === key ? saved.ids : [];
+
   useEffect(() => {
-    const load = () => setSaved({ key, ids: readFavorites(key) });
-    load();
+    let active = true;
+    const controller = new AbortController();
+    setSaved({ key, ids: readFavorites(key) });
     setError('');
-    window.addEventListener('storage', load);
-    return () => window.removeEventListener('storage', load);
-  }, [key]);
-  function toggle(id) {
-    const next = ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id];
+    if (!user) return () => controller.abort();
+
+    api('/favorites/ids', { signal: controller.signal })
+      .then((serverIds) => {
+        if (!active) return;
+        setSaved({ key, ids: serverIds });
+        saveLocalFavorites(key, serverIds);
+      })
+      .catch((err) => {
+        if (active && !controller.signal.aborted) setError(err.message);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [key, user?.id]);
+
+  async function toggle(id) {
+    const exists = ids.includes(id);
+    const next = exists ? ids.filter((value) => value !== id) : [...ids, id];
+    setSaved({ key, ids: next });
+    saveLocalFavorites(key, next);
+    setError('');
+
+    if (!user) return;
     try {
-      localStorage.setItem(key, JSON.stringify(next));
-      setSaved({ key, ids: next });
-      setError('');
-    } catch {
-      setError('Przeglądarka nie pozwala zapisać ulubionych. Włącz pamięć lokalną.');
+      await api(`/favorites/${id}`, { method: exists ? 'DELETE' : 'POST' });
+    } catch (err) {
+      setSaved({ key, ids });
+      saveLocalFavorites(key, ids);
+      setError(err.message);
     }
   }
+
   return <FavoritesContext.Provider value={{ ids, toggle, error }}>{children}</FavoritesContext.Provider>;
 }
 export function FavoriteButton({ book, compact = false }) {

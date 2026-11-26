@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models import Book, BookCopy, Reservation, User
-from app.schemas import ReservationCreate, ReservationResponse
+from app.schemas import ReservationCreate, ReservationHistorySummary, ReservationResponse
 from app.security import get_current_user, require_roles
 
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
@@ -15,29 +15,53 @@ staff_only = require_roles("librarian", "admin")
 
 LOAN_DAYS = 14
 ACTIVE_STATUSES = ("pending", "confirmed")
+StatusFilter = Literal["pending", "confirmed", "returned", "cancelled", "active"]
 
+
+def _is_overdue(r: Reservation) -> bool:
+    if r.status != "confirmed" or not r.due_date:
+        return False
+    due = r.due_date if r.due_date.tzinfo else r.due_date.replace(tzinfo=timezone.utc)
+    return due < datetime.now(timezone.utc)
 
 
 def _to_response(r: Reservation) -> ReservationResponse:
+    book = r.book_copy.book
+    review = r.review
     return ReservationResponse(
         id=r.id,
         status=r.status,
         book_id=r.book_copy.book_id,
-        book_title=r.book_copy.book.title,
+        book_title=book.title,
+        book_author=book.author,
+        book_genre=book.genre,
+        book_cover_url=book.cover_url,
         inventory_number=r.book_copy.inventory_number,
         user_id=r.user_id,
         user_email=r.user.email,
         reserved_at=r.reserved_at,
         due_date=r.due_date,
         returned_at=r.returned_at,
+        is_overdue=_is_overdue(r),
+        has_review=review is not None,
+        user_rating=review.rating if review else None,
     )
 
 
-# pulls copy, book and user in one query
+# pulls copy, book, user and review in one query
 _WITH_DETAILS = (
     joinedload(Reservation.book_copy).joinedload(BookCopy.book),
     joinedload(Reservation.user),
+    joinedload(Reservation.review),
 )
+
+
+def _apply_status_filter(query, status_filter: Optional[str]):
+    if not status_filter:
+        return query
+    if status_filter == "active":
+        return query.filter(Reservation.status.in_(ACTIVE_STATUSES))
+    return query.filter(Reservation.status == status_filter)
 
 
 def _get_locked_reservation(db: Session, reservation_id: int) -> Reservation:
@@ -108,16 +132,51 @@ def create_reservation(
 
 
 @router.get("/me", response_model=list[ReservationResponse])
-def my_reservations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    #Current user's reservation history
-    reservations = (
+def my_reservations(
+    status_filter: Optional[StatusFilter] = Query(None, alias="status"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = (
+        db.query(Reservation)
+        .options(*_WITH_DETAILS)
+        .filter(Reservation.user_id == current_user.id)
+    )
+    query = _apply_status_filter(query, status_filter)
+    reservations = query.order_by(Reservation.reserved_at.desc(), Reservation.id.desc()).all()
+    return [_to_response(r) for r in reservations]
+
+
+@router.get("/me/history", response_model=ReservationHistorySummary)
+def my_reservation_history(
+    status_filter: Optional[StatusFilter] = Query(None, alias="status"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    all_rows = (
         db.query(Reservation)
         .options(*_WITH_DETAILS)
         .filter(Reservation.user_id == current_user.id)
         .order_by(Reservation.reserved_at.desc(), Reservation.id.desc())
         .all()
     )
-    return [_to_response(r) for r in reservations]
+    all_items = [_to_response(r) for r in all_rows]
+    if status_filter == "active":
+        filtered = [item for item in all_items if item.status in ACTIVE_STATUSES]
+    elif status_filter:
+        filtered = [item for item in all_items if item.status == status_filter]
+    else:
+        filtered = all_items
+
+    return ReservationHistorySummary(
+        total=len(all_items),
+        pending=sum(1 for item in all_items if item.status == "pending"),
+        borrowed=sum(1 for item in all_items if item.status == "confirmed"),
+        returned=sum(1 for item in all_items if item.status == "returned"),
+        cancelled=sum(1 for item in all_items if item.status == "cancelled"),
+        overdue=sum(1 for item in all_items if item.is_overdue),
+        items=filtered,
+    )
 
 
 @router.post("/{reservation_id}/cancel", response_model=ReservationResponse)
