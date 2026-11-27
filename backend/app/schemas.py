@@ -203,3 +203,14 @@ class ImportResult(BaseModel):
     created: int
     skipped: int
     errors: list[ImportRowError]
+
+
+class CoverMatchItem(BaseModel):
+    book: BookDetailResponse
+    score: float
+
+
+class CoverScanResponse(BaseModel):
+    extracted_text: str
+    suggested_query: str
+    matches: list[CoverMatchItem]

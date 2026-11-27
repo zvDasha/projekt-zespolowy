@@ -157,7 +157,22 @@ dd { margin: 6px 0 0; }
 .upload-area { border: 1px dashed var(--muted); background: var(--surface); border-radius: 8px; padding: 36px 20px; text-align: center; align-items: center; cursor: pointer; gap: 16px; }
 .upload-area > span { font-size: .8rem; font-weight: 400; color: var(--muted); }
 .upload-area input { font-size: .8rem; max-width: 100%; }
+.upload-area .file-input-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+.upload-trigger { background: var(--bg); margin-top: 4px; }
+.upload-area:hover { border-color: var(--green); }
 .upload-area + .button { margin-top: 20px; }
+.scan-preview-box { margin: 14px 0; padding: 12px; background: var(--surface); border-radius: 8px; display: flex; justify-content: center; }
+.scan-preview { max-height: 170px; max-width: 100%; object-fit: contain; border-radius: 4px; box-shadow: 0 4px 14px #081b2525; }
+.scan-search-row { display: flex; gap: 10px; }
+.scan-inline-results { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line); }
+.scan-match-list { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.scan-result-item { display: flex; gap: 20px; padding: 18px; border: 2px solid var(--green); background: var(--tint); border-radius: 9px; align-items: center; animation: page-in .25s ease-out; }
+.scan-result-cover { width: 96px; height: 140px; flex-shrink: 0; background: var(--bg); padding: 8px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.scan-result-info { flex: 1; min-width: 0; }
+.scan-result-info h3 { margin: 6px 0 4px; font-size: 1.15rem; }
+.scan-result-info h3:hover { color: var(--green); text-decoration: underline; }
+.scan-result-badges { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.scan-result-action { margin-top: 14px; }
 .feature-intro { padding: 50px 32px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); text-align: center; }
 .feature-intro p { max-width: 580px; margin: 20px auto 28px; }
 .feature-symbol { width: 90px; height: 90px; border-radius: 50%; background: var(--tint); display: grid; place-items: center; margin: 0 auto 24px; }

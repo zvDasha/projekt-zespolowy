@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.init_db import init_database
-from app.routers import auth, users, books, reservations, reviews, book_import, favorites
+from app.routers import auth, users, books, reservations, reviews, book_import, favorites, cover_scan
 
 
 @asynccontextmanager
@@ -23,6 +23,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(cover_scan.router)
 app.include_router(books.router)
 app.include_router(reservations.router)
 app.include_router(reviews.router)
