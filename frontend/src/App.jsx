@@ -2,6 +2,7 @@ import { Link, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import Catalog from './pages/Catalog';
 import BookDetails from './pages/BookDetails';
+import CoverScanner from './pages/CoverScanner';
 import Upcoming from './pages/Upcoming';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
@@ -21,6 +22,7 @@ export default function App() {
         <Route index element={<Catalog home />} />
         <Route path="katalog" element={<Catalog key="catalog" />} />
         <Route path="ksiazki/:id" element={<BookDetails />} />
+        <Route path="skanowanie" element={<CoverScanner />} />
         <Route path="rekomendacje" element={<Upcoming />} />
         <Route path="kluby" element={<Upcoming chat />} />
         <Route path="logowanie" element={<Auth key="login" />} />

@@ -33,6 +33,10 @@ const messages = {
   'Too many rows (max 5000)': 'Plik może zawierać maksymalnie 5000 wierszy.',
   'Admin cannot deactivate their own account': 'Nie możesz zablokować swojego konta.',
   'Admin cannot remove their own admin role': 'Nie możesz odebrać sobie roli administratora.',
+  'Only JPG, PNG and WebP images are supported': 'Wybierz zdjęcie w formacie JPG, PNG lub WebP.',
+  'Image too large (max 10 MB)': 'Zdjęcie jest za duże. Maksymalny rozmiar to 10 MB.',
+  'Invalid image file': 'Nie udało się otworzyć pliku ze zdjęciem.',
+  'Provide an image file or search text': 'Dodaj zdjęcie okładki lub wpisz szukany tekst.',
 };
 
 export function errorMessage(detail, status) {

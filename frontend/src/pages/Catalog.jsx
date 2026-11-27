@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BookOpen, SlidersHorizontal, Sparkles, Bookmark } from 'lucide-react';
+import { BookOpen, SlidersHorizontal, Sparkles, Bookmark, ScanLine } from 'lucide-react';
 import { useApi } from '../hooks';
 import BookCard from '../components/BookCard';
 import { Empty, ErrorBox, Loading } from '../components/UI';
@@ -216,6 +216,13 @@ export default function Catalog({ home = false }) {
                 <small>Sprawdź dostępne egzemplarze</small>
               </span>
             </div>
+            <Link to="/skanowanie">
+              <ScanLine />
+              <span>
+                <strong>Masz książkę w ręku?</strong>
+                <small>Zeskanuj okładkę ze zdjęcia</small>
+              </span>
+            </Link>
           </div>
         </>
       )}

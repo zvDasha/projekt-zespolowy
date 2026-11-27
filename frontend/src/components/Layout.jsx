@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Search, Moon, Sun, UserRound, Bookmark, Sparkles } from 'lucide-react';
+import { BookOpen, Search, Moon, Sun, UserRound, Bookmark, Sparkles, ScanLine } from 'lucide-react';
 import { useApi } from '../hooks';
 import { BookCover } from './BookCard';
 import { useAuth } from '../auth';
@@ -159,6 +159,9 @@ export default function Layout() {
             <Sparkles size={16} /> Rekomendacje AI
           </NavLink>
           <NavLink to="/kluby">Kluby czytelnicze</NavLink>
+          <NavLink to="/skanowanie" className="inline">
+            <ScanLine size={16} /> Skanuj okładkę
+          </NavLink>
           {['librarian', 'admin'].includes(user?.role) && (
             <NavLink className="staff-link" to="/bibliotekarz">
               Bibliotekarz
