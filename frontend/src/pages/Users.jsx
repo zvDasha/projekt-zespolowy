@@ -1,10 +1,28 @@
 import { useEffect, useState } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { api, refreshData } from '../api';
 import { useAuth } from '../auth';
 import { useApi } from '../hooks';
 import { roleLabels } from './Profile';
 import { dateLabel, ErrorBox, Loading, Notice, PageTitle } from '../components/UI';
 import Select from '../components/Select';
+
+function SortHeader({ label, columnKey, sort, onSort }) {
+  const active = sort.key === columnKey;
+  const Icon = !active ? ArrowUpDown : sort.dir === 'asc' ? ArrowUp : ArrowDown;
+  return (
+    <th aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <button
+        type="button"
+        className={`sort-button ${active ? 'is-sorted' : ''}`}
+        onClick={() => onSort(columnKey)}
+      >
+        <span>{label}</span>
+        <Icon size={15} aria-hidden="true" />
+      </button>
+    </th>
+  );
+}
 
 function UserRow({ user, self, busy, update }) {
   const [role, setRole] = useState(user.role);
@@ -61,15 +79,56 @@ export default function Users() {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
+  const [sort, setSort] = useState({ key: '', dir: 'asc' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const users = result.data?.filter(
+
+  function toggleSort(key) {
+    setSort((current) =>
+      current.key === key
+        ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: 'asc' },
+    );
+  }
+
+  const filteredUsers = result.data?.filter(
     (user) =>
       (!role || role === user.role) &&
       (!status || (status === 'active' ? user.is_active : !user.is_active)) &&
       `${user.full_name} ${user.email}`.toLocaleLowerCase('pl').includes(search.toLocaleLowerCase('pl')),
   );
+
+  const users =
+    filteredUsers &&
+    [...filteredUsers].sort((a, b) => {
+      if (!sort.key) return 0;
+      const factor = sort.dir === 'asc' ? 1 : -1;
+      if (sort.key === 'user') {
+        return (
+          factor *
+          `${a.full_name} ${a.email}`.localeCompare(`${b.full_name} ${b.email}`, 'pl', {
+            sensitivity: 'base',
+          })
+        );
+      }
+      if (sort.key === 'role') {
+        return (
+          factor *
+          (roleLabels[a.role] || a.role).localeCompare(roleLabels[b.role] || b.role, 'pl', {
+            sensitivity: 'base',
+          })
+        );
+      }
+      if (sort.key === 'status') {
+        return factor * (Number(b.is_active) - Number(a.is_active));
+      }
+      if (sort.key === 'created_at') {
+        return factor * (new Date(a.created_at) - new Date(b.created_at));
+      }
+      return 0;
+    });
+
   async function update(user, body) {
     const change = body.role
       ? `Zmienić rolę użytkownika ${user.email} na „${roleLabels[body.role]}”?`
@@ -88,6 +147,7 @@ export default function Users() {
       setBusy(false);
     }
   }
+
   return (
     <>
       <PageTitle eyebrow="ADMINISTRATOR" title="Użytkownicy">
@@ -136,10 +196,15 @@ export default function Users() {
               <caption>Konta użytkowników · {users.length}</caption>
               <thead>
                 <tr>
-                  <th>Użytkownik</th>
-                  <th>Rola</th>
-                  <th>Status</th>
-                  <th>Data rejestracji</th>
+                  <SortHeader label="Użytkownik" columnKey="user" sort={sort} onSort={toggleSort} />
+                  <SortHeader label="Rola" columnKey="role" sort={sort} onSort={toggleSort} />
+                  <SortHeader label="Status" columnKey="status" sort={sort} onSort={toggleSort} />
+                  <SortHeader
+                    label="Data rejestracji"
+                    columnKey="created_at"
+                    sort={sort}
+                    onSort={toggleSort}
+                  />
                   <th>Dostęp</th>
                 </tr>
               </thead>
