@@ -38,7 +38,7 @@ function UserRow({ user, self, busy, update }) {
       </td>
       <td>
         <span className={`status ${user.is_active ? '' : 'status-cancelled'}`}>
-          {user.is_active ? 'Aktywne' : 'Zablokowane'}
+      {user.is_active ? 'Aktywne' : 'Nieaktywne'}
         </span>
       </td>
       <td>{dateLabel(user.created_at)}</td>
@@ -48,7 +48,7 @@ function UserRow({ user, self, busy, update }) {
           disabled={self || busy}
           onClick={() => update(user, { is_active: !user.is_active })}
         >
-          {user.is_active ? 'Zablokuj' : 'Odblokuj'}
+          {user.is_active ? 'Usuń' : 'Przywróć'}
         </button>
       </td>
     </tr>
@@ -70,7 +70,7 @@ export default function Users() {
   async function update(user, body) {
     const change = body.role
       ? `Zmienić rolę użytkownika ${user.email} na „${roleLabels[body.role]}”?`
-      : `${body.is_active ? 'Odblokować' : 'Zablokować'} konto ${user.email}?`;
+      : `${body.is_active ? 'Przywrócić' : 'Usunąć'} konto ${user.email}?`;
     if (!window.confirm(change)) return;
     setBusy(true);
     setError('');
@@ -144,7 +144,7 @@ export default function Users() {
         )
       )}
       <p className="small muted">
-        Nie możesz zablokować własnego konta ani odebrać sobie roli administratora.
+        Nie możesz usunąć własnego konta ani odebrać sobie roli administratora.
       </p>
     </>
   );
