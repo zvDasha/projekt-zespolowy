@@ -38,7 +38,7 @@ function UserRow({ user, self, busy, update }) {
       </td>
       <td>
         <span className={`status ${user.is_active ? '' : 'status-cancelled'}`}>
-      {user.is_active ? 'Aktywne' : 'Nieaktywne'}
+          {user.is_active ? 'Aktywne' : 'Nieaktywne'}
         </span>
       </td>
       <td>{dateLabel(user.created_at)}</td>
@@ -48,29 +48,32 @@ function UserRow({ user, self, busy, update }) {
           disabled={self || busy}
           onClick={() => update(user, { is_active: !user.is_active })}
         >
-          {user.is_active ? 'Usuń' : 'Przywróć'}
+          {user.is_active ? 'Dezaktywuj' : 'Aktywuj'}
         </button>
       </td>
     </tr>
   );
 }
+
 export default function Users() {
   const { user: currentUser } = useAuth();
   const result = useApi('/users', 15000);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
+  const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const users = result.data?.filter(
     (user) =>
       (!role || role === user.role) &&
+      (!status || (status === 'active' ? user.is_active : !user.is_active)) &&
       `${user.full_name} ${user.email}`.toLocaleLowerCase('pl').includes(search.toLocaleLowerCase('pl')),
   );
   async function update(user, body) {
     const change = body.role
       ? `Zmienić rolę użytkownika ${user.email} na „${roleLabels[body.role]}”?`
-      : `${body.is_active ? 'Przywrócić' : 'Usunąć'} konto ${user.email}?`;
+      : `${body.is_active ? 'Aktywować' : 'Dezaktywować'} konto ${user.email}?`;
     if (!window.confirm(change)) return;
     setBusy(true);
     setError('');
@@ -106,6 +109,19 @@ export default function Users() {
             value={role}
             onChange={setRole}
             options={[['', 'Wszystkie role'], ...Object.entries(roleLabels)]}
+          />
+        </label>
+        <label>
+          Status
+          <Select
+            label="Status"
+            value={status}
+            onChange={setStatus}
+            options={[
+              ['', 'Wszystkie statusy'],
+              ['active', 'Aktywny'],
+              ['inactive', 'Nieaktywny'],
+            ]}
           />
         </label>
       </div>
@@ -144,7 +160,7 @@ export default function Users() {
         )
       )}
       <p className="small muted">
-        Nie możesz usunąć własnego konta ani odebrać sobie roli administratora.
+        Nie możesz dezaktywować własnego konta ani odebrać sobie roli administratora.
       </p>
     </>
   );
