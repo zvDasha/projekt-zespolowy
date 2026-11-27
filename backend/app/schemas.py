@@ -214,3 +214,38 @@ class CoverScanResponse(BaseModel):
     extracted_text: str
     suggested_query: str
     matches: list[CoverMatchItem]
+
+
+class ChatRoomCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    topic: str = Field(..., min_length=2, max_length=120)
+    description: Optional[str] = Field(None, max_length=500)
+
+
+class ChatRoomResponse(BaseModel):
+    id: int
+    name: str
+    topic: str
+    description: Optional[str] = None
+    created_by_name: Optional[str] = None
+    messages_count: int = 0
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChatMessageCreate(BaseModel):
+    content: str = Field(..., min_length=1, max_length=1500)
+
+
+class ChatMessageResponse(BaseModel):
+    id: int
+    room_id: Optional[int] = None
+    room_name: str
+    user_id: int
+    user_name: str
+    user_role: str
+    content: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

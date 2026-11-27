@@ -308,6 +308,13 @@ footer { background: var(--surface); border-top: 1px solid var(--line); }
 .sort-button { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; }
 .sort-button:hover, .sort-button.is-sorted { color: var(--green); }
 .sort-button.is-sorted { font-weight: 700; }
+.chat-messages { display: flex; flex-direction: column; gap: 14px; max-height: 440px; overflow-y: auto; padding-right: 4px; margin: 18px 0 22px; }
+.chat-message { padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.chat-message p { margin: 8px 0 0; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-message-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.chat-room-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.chat-room-item { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 4px; width: 100%; padding: 14px 16px; border-radius: 8px; }
+.chat-room-item.is-active { border-color: var(--green); background: var(--tint); color: var(--green); }
 
 .page-enter { animation: page-in .28s ease-out; }
 .book-card, .notice, .reservation-card { animation: page-in .25s ease-out; }

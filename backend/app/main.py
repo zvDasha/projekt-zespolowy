@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.init_db import init_database
-from app.routers import auth, users, books, reservations, reviews, book_import, favorites, cover_scan
+from app.routers import auth, users, books, reservations, reviews, book_import, favorites, cover_scan, chat
 
 
 @asynccontextmanager
@@ -29,9 +29,9 @@ app.include_router(reservations.router)
 app.include_router(reviews.router)
 app.include_router(book_import.router)
 app.include_router(favorites.router)
+app.include_router(chat.router)
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-

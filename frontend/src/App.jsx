@@ -14,6 +14,7 @@ import ManageBooks from './pages/ManageBooks';
 import BookEditor from './pages/BookEditor';
 import ImportBooks from './pages/ImportBooks';
 import Users from './pages/Users';
+import ChatRooms from './pages/ChatRooms';
 
 export default function App() {
   return (
@@ -24,7 +25,7 @@ export default function App() {
         <Route path="ksiazki/:id" element={<BookDetails />} />
         <Route path="skanowanie" element={<CoverScanner />} />
         <Route path="rekomendacje" element={<Upcoming />} />
-        <Route path="kluby" element={<Upcoming chat />} />
+        <Route path="kluby" element={<ChatRooms />} />
         <Route path="logowanie" element={<Auth key="login" />} />
         <Route path="rejestracja" element={<Auth key="register" mode="register" />} />
         <Route path="zapomniane-haslo" element={<Auth key="forgot" mode="forgot" />} />
