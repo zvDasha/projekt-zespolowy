@@ -94,17 +94,6 @@ def google_login(auth_data: GoogleAuthRequest, db: Session = Depends(get_db)):
     email = id_info.get("email")
     full_name = id_info.get("name") or (email.split("@")[0] if email else "Google User")
 
-    try:
-      id_info = google_id_token.verify_oauth2_token(
-          auth_data.id_token, google_requests.Request(), GOOGLE_CLIENT_ID or None
-      )
-    except ValueError as e:
-      print(f"[GOOGLE AUTH ERROR] {e}")
-      raise HTTPException(
-          status_code=status.HTTP_401_UNAUTHORIZED,
-          detail=f"Invalid Google ID token: {e}",
-      )
-    
     if not email or not google_sub:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

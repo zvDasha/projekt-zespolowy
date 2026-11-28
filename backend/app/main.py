@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.init_db import init_database
+from app import realtime
 from app.routers import auth, users, books, reservations, reviews, book_import, favorites, cover_scan, chat
 
 
@@ -12,6 +13,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Library AI API", lifespan=lifespan)
+app.middleware("http")(realtime.notify_changes)
+app.include_router(realtime.router)
 
 app.add_middleware(
     CORSMiddleware,

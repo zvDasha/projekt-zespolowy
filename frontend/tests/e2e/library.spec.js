@@ -499,8 +499,8 @@ test('dashboard reports actual library counts and unfinished modules are explici
   await page.goto('/rekomendacje');
   await expect(page.getByText('W przygotowaniu', { exact: true })).toBeVisible();
   await page.goto('/kluby');
-  await expect(page.getByText('W przygotowaniu', { exact: true })).toBeVisible();
-  await expect(page.locator('textarea')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Pokoje tematyczne' })).toBeVisible();
+  await expect(page.getByLabel('Napisz wiadomość w pokoju')).toBeVisible();
 });
 
 test('catalog pagination and availability filtering use server results', async ({ page, request }) => {
@@ -518,7 +518,7 @@ test('catalog pagination and availability filtering use server results', async (
   await expect(page.locator('.pagination')).toHaveCount(0);
 });
 
-test('availability changes made by another reader appear through polling', async ({ page, request }) => {
+test('availability changes made by another reader appear through WebSocket', async ({ page, request }) => {
   const reader = await createReader(request);
   const book = await createBook(request, title('Aktualizacja'));
   await page.goto(`/ksiazki/${book.id}`);
@@ -529,6 +529,44 @@ test('availability changes made by another reader appear through polling', async
   });
   expect(response.status()).toBe(201);
   await expect(page.getByText('1 z 2 egzemplarzy dostępnych')).toBeVisible({
-    timeout: 18000,
+    timeout: 3000,
   });
+});
+
+test('chat receives messages and book availability from another client', async ({ page, request }) => {
+  const reader = await createReader(request);
+  const book = await createBook(request, title('Czat'));
+  await login(page, reader.email, reader.password);
+  await page.goto('/kluby');
+  await expect(page.getByText('Aktualizacje na żywo włączone')).toBeVisible();
+  await page.getByLabel('Szukaj książki', { exact: true }).fill(book.title);
+  const availability = page.locator('.chat-room-item').filter({ hasText: book.title });
+  await expect(availability).toContainText('2 z 2 egzemplarzy dostępnych');
+  const rooms = await (await request.get('/api/chat/rooms')).json();
+  const room = rooms[0];
+  const content = title('Wiadomość na żywo');
+  expect((await request.post(`/api/chat/rooms/${room.id}/messages`, {
+    headers: headers(reader.token), data: { content },
+  })).status()).toBe(201);
+  await expect(page.locator('.chat-message').filter({ hasText: content })).toHaveCount(1, { timeout: 3000 });
+  const reservation = await request.post('/api/reservations', {
+    headers: headers(reader.token), data: { book_id: book.id },
+  });
+  expect(reservation.status()).toBe(201);
+  await expect(availability).toContainText('1 z 2 egzemplarzy dostępnych', { timeout: 3000 });
+  await request.post(`/api/reservations/${(await reservation.json()).id}/cancel`, {
+    headers: headers(reader.token),
+  });
+  await expect(availability).toContainText('2 z 2 egzemplarzy dostępnych', { timeout: 3000 });
+  const reply = title('Odpowiedź z przeglądarki');
+  await page.getByLabel('Napisz wiadomość w pokoju').fill(reply);
+  await page.getByRole('button', { name: 'Wyślij wiadomość' }).click();
+  await expect(page.locator('.chat-message').filter({ hasText: reply })).toHaveCount(1);
+  await page.locator('button.chat-room-item').filter({ hasText: rooms[1].name }).click();
+  await expect(page.locator('.chat-message').filter({ hasText: content })).toHaveCount(0);
+  const roomName = title('Nowy pokój');
+  await page.getByLabel('Nazwa pokoju').fill(roomName);
+  await page.getByLabel('Tematyka / zainteresowania').fill('Książki');
+  await page.getByRole('button', { name: 'Utwórz pokój' }).click();
+  await expect(page.getByRole('heading', { name: roomName, exact: true })).toBeVisible();
 });

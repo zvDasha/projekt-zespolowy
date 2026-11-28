@@ -12,6 +12,12 @@ export default function Favorites() {
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
+    const refresh = () => setVersion((v) => v + 1);
+    window.addEventListener('library:update', refresh);
+    return () => window.removeEventListener('library:update', refresh);
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError('');

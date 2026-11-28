@@ -23,7 +23,7 @@ export default function Catalog({ home = false }) {
     query.set('page_size', '12');
     if (!query.has('sort')) query.set('sort', '-added');
   }
-  const { data, loading, error, reload } = useApi('/books?' + query, 15000);
+  const { data, loading, error, reload } = useApi('/books?' + query);
   function change(key, value) {
     const next = new URLSearchParams(params);
     value ? next.set(key, value) : next.delete(key);

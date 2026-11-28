@@ -3,19 +3,22 @@ import { Link } from 'react-router-dom';
 import { MessageSquarePlus, MessagesSquare, Send } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../auth';
+import { useApi } from '../hooks';
 import { dateLabel, Empty, ErrorBox, Loading, Notice, PageTitle } from '../components/UI';
 
-export default function ChatRooms() {
+export default function ChatRooms({ connected }) {
   const { user } = useAuth();
-  const [rooms, setRooms] = useState([]);
-  const [loadingRooms, setLoadingRooms] = useState(true);
-  const [roomsError, setRoomsError] = useState('');
   const [search, setSearch] = useState('');
+  const roomList = useApi('/chat/rooms?q=' + encodeURIComponent(search.trim()));
+  const rooms = roomList.data || [];
+  const [roomsError, setRoomsError] = useState('');
 
   const [selectedRoomId, setSelectedRoomId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
+  const chat = useApi(selectedRoomId ? `/chat/rooms/${selectedRoomId}/messages` : null);
+  const messages = chat.data || [];
   const [chatError, setChatError] = useState('');
+  const [bookSearch, setBookSearch] = useState('');
+  const books = useApi('/books?page_size=5&q=' + encodeURIComponent(bookSearch.trim()));
 
   const [roomName, setRoomName] = useState('');
   const [roomTopic, setRoomTopic] = useState('');
@@ -26,55 +29,13 @@ export default function ChatRooms() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
 
-  async function loadRooms(queryText = search) {
-    setRoomsError('');
-    try {
-      const qs = queryText.trim() ? `?q=${encodeURIComponent(queryText.trim())}` : '';
-      const data = await api(`/chat/rooms${qs}`);
-      setRooms(data);
-      setSelectedRoomId((prev) => {
-        if (prev && data.some((r) => r.id === prev)) return prev;
-        return data[0]?.id ?? null;
-      });
-    } catch (err) {
-      setRoomsError(err.message);
-    } finally {
-      setLoadingRooms(false);
-    }
-  }
-
-  async function loadMessages(roomId, silent = false) {
-    if (!roomId) {
-      setMessages([]);
-      return;
-    }
-    if (!silent) {
-      setLoadingMessages(true);
-      setChatError('');
-    }
-    try {
-      const data = await api(`/chat/rooms/${roomId}/messages`);
-      setMessages(data);
-    } catch (err) {
-      if (!silent) setChatError(err.message);
-    } finally {
-      if (!silent) setLoadingMessages(false);
-    }
-  }
+  useEffect(() => {
+    if (!roomList.data) return;
+    setSelectedRoomId((id) => roomList.data.some((r) => r.id === id) ? id : roomList.data[0]?.id ?? null);
+  }, [roomList.data]);
 
   useEffect(() => {
-    loadRooms('');
-  }, []);
-
-  useEffect(() => {
-    if (!selectedRoomId) return;
-    loadMessages(selectedRoomId, false);
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        loadMessages(selectedRoomId, true);
-      }
-    }, 5000);
-    return () => clearInterval(interval);
+    setChatError('');
   }, [selectedRoomId]);
 
   const activeRoom = rooms.find((r) => r.id === selectedRoomId) || null;
@@ -98,7 +59,8 @@ export default function ChatRooms() {
       setRoomTopic('');
       setRoomDescription('');
       setRoomNotice(`Utworzono pokój „${created.name}”.`);
-      await loadRooms(search);
+      setSearch('');
+      roomList.reload();
       setSelectedRoomId(created.id);
     } catch (err) {
       setRoomsError(err.message);
@@ -113,17 +75,13 @@ export default function ChatRooms() {
     setSending(true);
     setChatError('');
     try {
-      const created = await api(`/chat/rooms/${selectedRoomId}/messages`, {
+      await api(`/chat/rooms/${selectedRoomId}/messages`, {
         method: 'POST',
         body: { content: draft.trim() },
       });
       setDraft('');
-      setMessages((prev) => [...prev, created]);
-      setRooms((prev) =>
-        prev.map((r) =>
-          r.id === selectedRoomId ? { ...r, messages_count: r.messages_count + 1 } : r,
-        ),
-      );
+      chat.reload();
+      roomList.reload();
     } catch (err) {
       setChatError(err.message);
     } finally {
@@ -152,13 +110,16 @@ export default function ChatRooms() {
             </div>
           </div>
 
-          <ErrorBox error={chatError} reload={() => selectedRoomId && loadMessages(selectedRoomId)} />
+          <p className="small muted" role="status">
+            {connected ? 'Aktualizacje na żywo włączone' : 'Łączenie z aktualizacjami na żywo…'}
+          </p>
+          <ErrorBox error={chatError || chat.error} reload={chat.reload} />
 
           {!activeRoom ? (
             <Empty title="Brak wybranego pokoju">
               Wybierz pokój z listy obok lub utwórz nowy o wybranej tematyce.
             </Empty>
-          ) : loadingMessages ? (
+          ) : chat.loading ? (
             <Loading />
           ) : (
             <>
@@ -213,22 +174,39 @@ export default function ChatRooms() {
 
         <div className="form-stack">
           <section className="panel">
+            <h2>Dostępność książek</h2>
+            <label>
+              Szukaj książki
+              <input value={bookSearch} onChange={(e) => setBookSearch(e.target.value)} maxLength={100}
+                placeholder="Tytuł lub autor" />
+            </label>
+            <ErrorBox error={books.error} reload={books.reload} />
+            {books.loading ? <Loading /> : (
+              <div className="chat-room-list" aria-live="polite">
+                {books.data?.items.map((book) => (
+                  <Link key={book.id} className="chat-room-item" to={`/ksiazki/${book.id}`}>
+                    <strong>{book.title}</strong>
+                    <span>{book.available_copies} z {book.total_copies} egzemplarzy dostępnych</span>
+                  </Link>
+                ))}
+                {books.data?.total === 0 && <p className="muted">Nie znaleziono książek.</p>}
+              </div>
+            )}
+          </section>
+          <section className="panel">
             <MessagesSquare size={22} />
             <h2>Lista pokojów</h2>
             <label>
               Szukaj pokoju lub tematu
               <input
                 value={search}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSearch(val);
-                  loadRooms(val);
-                }}
+                onChange={(e) => setSearch(e.target.value)}
+                maxLength={100}
                 placeholder="Np. sci-fi, ekonomia, kryminał…"
               />
             </label>
-            <ErrorBox error={roomsError} reload={() => loadRooms(search)} />
-            {loadingRooms ? (
+            <ErrorBox error={roomsError || roomList.error} reload={roomList.reload} />
+            {roomList.loading ? (
               <Loading />
             ) : rooms.length ? (
               <div className="chat-room-list">

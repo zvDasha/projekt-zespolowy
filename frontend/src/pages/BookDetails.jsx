@@ -7,7 +7,7 @@ import BookActions from '../components/BookActions';
 
 export default function BookDetails() {
   const { id } = useParams();
-  const { data: book, loading, error, reload } = useApi(`/books/${id}`, 15000);
+  const { data: book, loading, error, reload } = useApi(`/books/${id}`);
   const reviews = useApi(`/books/${id}/reviews`);
   if (loading) return <Loading />;
   if (!book) return <ErrorBox error={error} reload={reload} />;
