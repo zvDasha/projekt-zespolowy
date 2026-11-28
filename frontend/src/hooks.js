@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
 
-// Jeden prosty hook do odczytu danych. Polling nie zastępuje WebSocketów.
+// WebSocket wywołuje library:update, a hook pobiera aktualne dane.
 export function useApi(path, poll = 0) {
   const [state, setState] = useState({ path, data: null, loading: !!path, error: '' });
   const [version, setVersion] = useState(0);

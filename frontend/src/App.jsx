@@ -15,8 +15,10 @@ import BookEditor from './pages/BookEditor';
 import ImportBooks from './pages/ImportBooks';
 import Users from './pages/Users';
 import ChatRooms from './pages/ChatRooms';
+import { useRealtime } from './realtime';
 
 export default function App() {
+  const connected = useRealtime();
   return (
     <Routes>
       <Route element={<Layout />}>
@@ -25,7 +27,7 @@ export default function App() {
         <Route path="ksiazki/:id" element={<BookDetails />} />
         <Route path="skanowanie" element={<CoverScanner />} />
         <Route path="rekomendacje" element={<Upcoming />} />
-        <Route path="kluby" element={<ChatRooms />} />
+        <Route path="kluby" element={<ChatRooms connected={connected} />} />
         <Route path="logowanie" element={<Auth key="login" />} />
         <Route path="rejestracja" element={<Auth key="register" mode="register" />} />
         <Route path="zapomniane-haslo" element={<Auth key="forgot" mode="forgot" />} />

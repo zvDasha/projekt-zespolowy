@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash
+from sqlalchemy import text
 from app.database import engine, SessionLocal, Base
 from app.models import User, Book, BookCopy, Reservation, Review, Favorite, ChatMessage
 from app.db_rules import install_db_rules
@@ -23,8 +24,24 @@ def _ensure_default_covers(db):
         db.commit()
 
 
+def update_chat_schema(conn):
+    # create_all nie dodaje nowych kolumn do już istniejących tabel.
+    conn.execute(text("""
+        ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS room_id INTEGER
+        REFERENCES chat_rooms(id) ON DELETE CASCADE
+    """))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_chat_messages_room_id ON chat_messages(room_id)"))
+    conn.execute(text("""
+        UPDATE chat_messages SET room_id = chat_rooms.id
+        FROM chat_rooms
+        WHERE chat_messages.room_name = chat_rooms.name AND chat_messages.room_id IS NULL
+    """))
+
+
 def init_database():
     Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        update_chat_schema(conn)
     install_db_rules(engine)
     db = SessionLocal()
     try:
